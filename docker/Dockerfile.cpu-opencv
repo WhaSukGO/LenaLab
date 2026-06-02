@@ -12,4 +12,5 @@
 # Verify:
 #   docker run --rm vo-cpu-opencv:1 python -c "import cv2, numpy; print(cv2.__version__)"
 FROM python:3.11-slim
-RUN pip install --no-cache-dir numpy "opencv-python-headless>=4.8"
+# numpy+opencv for VO; scipy for SLAM pose-graph optimization (and general agent use)
+RUN pip install --no-cache-dir numpy "opencv-python-headless>=4.8" scipy

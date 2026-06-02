@@ -130,6 +130,49 @@ def degenerate_author():
     return author
 
 
+# --- SLAM with loop closure -------------------------------------------------------------
+
+_SLAM_REFERENCE_MAIN = (Path(VO_CODE_DIR) / "run_slam.py").read_text()
+
+SLAM_TASK_DESCRIPTION = (
+    "Implement RGB-D SLAM **with LOOP CLOSURE** for a long sequence that revisits places. "
+    "From $LAB_DATA read frames (frame_%04d.png), depth (depth_%04d.png), intrinsics.txt "
+    "(fx fy cx cy depth_scale). Frame-to-frame RGB-D odometry alone DRIFTS badly on this "
+    "sequence — you must add global consistency: (1) select keyframes, (2) DETECT LOOP "
+    "CLOSURES (recognize when a keyframe revisits an earlier place, e.g. by matching its "
+    "features to temporally-distant keyframes + geometric verification), (3) optimize the "
+    "POSE GRAPH (sequential + loop constraints) for a globally-consistent trajectory. Write "
+    "$LAB_ARTIFACTS/traj.txt with one `tx ty tz` (camera centre) per frame, in order. You "
+    "are graded on held-out ATE (SE(3) metric) — VO-only will NOT pass the bar, so loop "
+    "closure is required. Do not read any ground truth. (numpy, opencv, scipy available.)")
+
+
+def vo_impl_task_slam(threshold: float, *, dev: str = "fr1_room",
+                      heldout: tuple[str, ...] = ("fr1_room",)):
+    """SLAM Track B task. Same generalization grader (runs the authored code on the held-out
+    loop sequence, SE(3) ATE), but the bar requires loop closure (VO-only drifts past it)."""
+    from ..plugins.vo_rgbd import rgbd_datasets
+
+    return ImplementationTask(
+        description=SLAM_TASK_DESCRIPTION,
+        framework=_CPU_FW,
+        entry_command='python3 "$LAB_CODE/main.py"',
+        eval_command='python3 "$LAB_CODE/eval.py"',
+        eval_code=_RGBD_EVAL_CODE,
+        metric="ate_rmse", op="<=", threshold=threshold,
+        datasets=rgbd_datasets(dev, heldout),
+        entry_filename="main.py",
+    )
+
+
+def slam_reference_author():
+    """Writes the reference RGB-D SLAM (loop closure + pose graph) as main.py."""
+    def author(task, code_dir: Path, rec) -> Usage:
+        (Path(code_dir) / "main.py").write_text(_SLAM_REFERENCE_MAIN)
+        return Usage()
+    return author
+
+
 def resilient_sdk_author(job_runner, image_registry, dataset_cache, *,
                          model: str = "claude-sonnet-4-6", max_turns: int = 80):
     """A live sandboxed author that does NOT discard work when the session ends early.

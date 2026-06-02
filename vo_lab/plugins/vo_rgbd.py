@@ -42,6 +42,9 @@ SEQS = {
     "fr1_xyz":  (f"{TUM_BASE}/freiburg1/rgbd_dataset_freiburg1_xyz.tgz",  "freiburg1"),
     "fr1_desk": (f"{TUM_BASE}/freiburg1/rgbd_dataset_freiburg1_desk.tgz", "freiburg1"),
     "fr2_xyz":  (f"{TUM_BASE}/freiburg2/rgbd_dataset_freiburg2_xyz.tgz",  "freiburg2"),
+    # longer sequences with genuine LOOPS (camera revisits a place) — for SLAM/loop closure
+    "fr1_room": (f"{TUM_BASE}/freiburg1/rgbd_dataset_freiburg1_room.tgz", "freiburg1"),
+    "fr2_desk": (f"{TUM_BASE}/freiburg2/rgbd_dataset_freiburg2_desk.tgz", "freiburg2"),
 }
 
 
