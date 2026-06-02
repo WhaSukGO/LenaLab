@@ -117,3 +117,25 @@ ANTHROPIC_API_KEY=… python -m vo_lab.run_vo_tum_implement 0.1337
 ```
 Prereqs: Docker + image `docker build -f docker/Dockerfile.cpu-opencv -t vo-cpu-opencv:1 .`;
 `ANTHROPIC_API_KEY` in `.env`.
+
+---
+
+## 9. Update — clean re-run (v2), after the resilient-author fix
+
+The run above hit the 40-turn limit and was salvaged manually. After shipping
+`resilient_sdk_author` (grades the artifact even if the session ends early) and raising the
+budget to 80 turns, the live run was repeated and **completed end-to-end, VERIFIED**:
+
+| Metric | v1 (salvaged) | **v2 (clean re-run)** |
+|---|---|---|
+| Verdict | VERIFIED (manual salvage) | **VERIFIED (automatic)** |
+| Held-out ATE-RMSE (Sim3) | 0.124 m | **0.052 m** |
+| vs reference baseline (0.089 m) | worse | **better** |
+| Authored approach | PnP-centric, deferred init | `goodFeaturesToTrack` + optical-flow tracking, **wider keyframe baseline (skip=2)**, SIFT fallback, keyframe interpolation |
+| Algorithm file | `artifacts/agent_authored_vo_tum_v1.py` | `artifacts/agent_authored_vo_tum_v2.py` |
+
+The session again ended via the SDK (`error result: success`), and the resilient author
+graded the left artifact automatically — no manual salvage needed. A background watchdog
+(kill any sandbox container running >360 s) guarded the unattended run and fired zero kills
+(the run was healthy throughout). Demo regenerated from v2:
+`artifacts/demo/{trajectory.png, vo_demo.mp4, vo_demo.gif}` (ATE 0.052 m).

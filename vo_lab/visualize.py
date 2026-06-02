@@ -67,34 +67,47 @@ def render(code: Path, frames_dir: Path, gt_path: Path, out_dir: Path,
     plot_path = out_dir / "trajectory.png"
     fig.savefig(plot_path, dpi=110); plt.close(fig)
 
-    # (b) demo video: input frame (left) + trajectory-so-far (right)
+    # (b) demo video (mp4, full quality) + GIF (downsampled, for inline README playback —
+    #     GitHub renders GIFs inline but NOT mp4 from a repo path).
+    import cv2
     frames = sorted(frames_dir.glob("frame_*.png"))[:m]
     lo = np.minimum(gt.min(0), aligned.min(0)); hi = np.maximum(gt.max(0), aligned.max(0))
     video_path = out_dir / "vo_demo.mp4"
-    with imageio.get_writer(video_path, fps=fps, macro_block_size=None) as w:
-        for i, fp in enumerate(frames):
-            img = imageio.imread(fp)
-            if img.ndim == 2:
-                img = np.stack([img] * 3, -1)
-            fig = plt.figure(figsize=(4.8, 4.8), dpi=100)
-            ax = fig.add_subplot(111)
-            ax.plot(gt[:, 0], gt[:, 2], "k-", lw=1, alpha=.3)
-            ax.plot(aligned[: i + 1, 0], aligned[: i + 1, 2], "r-", lw=2)
-            ax.plot(gt[: i + 1, 0], gt[: i + 1, 2], "k-", lw=2)
-            ax.scatter(aligned[i, 0], aligned[i, 2], c="r", s=30)
-            ax.set_xlim(lo[0] - .1, hi[0] + .1); ax.set_ylim(lo[2] - .1, hi[2] + .1)
-            ax.set_title(f"trajectory (frame {i+1}/{m})"); ax.set_aspect("equal"); ax.grid(alpha=.3)
-            fig.tight_layout(); fig.canvas.draw()
-            traj_img = np.asarray(fig.canvas.buffer_rgba())[..., :3]
-            plt.close(fig)
-            import cv2
-            h = img.shape[0]
-            traj_rs = cv2.resize(traj_img, (int(traj_img.shape[1] * h / traj_img.shape[0]), h))
-            img_rs = cv2.resize(img, (int(img.shape[1] * h / img.shape[0]), h))
-            w.append_data(np.concatenate([img_rs, traj_rs], axis=1))
+    gif_path = out_dir / "vo_demo.gif"
+
+    def composite(i: int) -> np.ndarray:
+        img = imageio.imread(frames[i])
+        if img.ndim == 2:
+            img = np.stack([img] * 3, -1)
+        fig = plt.figure(figsize=(4.8, 4.8), dpi=100)
+        ax = fig.add_subplot(111)
+        ax.plot(gt[:, 0], gt[:, 2], "k-", lw=1, alpha=.3)
+        ax.plot(aligned[: i + 1, 0], aligned[: i + 1, 2], "r-", lw=2, label="estimated")
+        ax.plot(gt[: i + 1, 0], gt[: i + 1, 2], "k-", lw=2, label="ground truth")
+        ax.scatter(aligned[i, 0], aligned[i, 2], c="r", s=30)
+        ax.set_xlim(lo[0] - .1, hi[0] + .1); ax.set_ylim(lo[2] - .1, hi[2] + .1)
+        ax.set_title(f"agent-authored VO — frame {i+1}/{m}, ATE {ate:.3f} m")
+        ax.set_aspect("equal"); ax.grid(alpha=.3); ax.legend(loc="upper left", fontsize=8)
+        fig.tight_layout(); fig.canvas.draw()
+        traj_img = np.asarray(fig.canvas.buffer_rgba())[..., :3]
+        plt.close(fig)
+        h = img.shape[0]
+        traj_rs = cv2.resize(traj_img, (int(traj_img.shape[1] * h / traj_img.shape[0]), h))
+        img_rs = cv2.resize(img, (int(img.shape[1] * h / img.shape[0]), h))
+        return np.concatenate([img_rs, traj_rs], axis=1)
+
+    gif_stride = max(1, m // 90)          # ~90 frames in the gif, keeps it README-sized
+    with imageio.get_writer(video_path, fps=fps, macro_block_size=None) as w, \
+         imageio.get_writer(gif_path, mode="I", duration=1.0 / fps, loop=0) as g:
+        for i in range(m):
+            frame = composite(i)
+            w.append_data(frame)
+            if i % gif_stride == 0:
+                half = cv2.resize(frame, (frame.shape[1] // 2, frame.shape[0] // 2))
+                g.append_data(half)
 
     return {"ate_rmse": ate, "frames": m, "plot": str(plot_path), "video": str(video_path),
-            "recovered_scale": s}
+            "gif": str(gif_path), "recovered_scale": s}
 
 
 if __name__ == "__main__":

@@ -17,14 +17,23 @@ See `claudedocs/` for the research report, architecture design, and the trial wr
 
 ## Demo — a Claude agent wrote this VO; the verifier judged it on real footage
 
-![Agent-authored monocular VO vs ground truth on TUM fr1/xyz — ATE 0.124 m, Sim(3)-aligned](artifacts/demo/trajectory.png)
+<p align="center">
+  <img src="artifacts/demo/vo_demo.gif" width="420" alt="Agent-authored monocular VO tracing the camera path (red) against ground truth (black) on TUM fr1/xyz"><br>
+  <em>Estimated camera path (red, Sim(3)-aligned) vs ground truth (black), traced over 200 real frames.</em>
+</p>
 
-A sandboxed Claude agent authored a 360-line PnP-centric monocular visual-odometry algorithm
-from scratch; an independent verifier ran it on a **held-out** real trajectory it never saw
-and measured **ATE-RMSE = 0.124 m** (≤ the 0.134 m bar). Estimated path in red (Sim(3)-aligned),
-ground truth in black. Demo video: [`artifacts/demo/vo_demo.mp4`](artifacts/demo/vo_demo.mp4) ·
-the algorithm it wrote: [`artifacts/agent_authored_vo_tum_v1.py`](artifacts/agent_authored_vo_tum_v1.py) ·
-full write-up: [`claudedocs/trial_track_b_tum_2026-06-02.md`](claudedocs/trial_track_b_tum_2026-06-02.md).
+![Agent-authored monocular VO vs ground truth on TUM fr1/xyz — ATE 0.052 m, Sim(3)-aligned](artifacts/demo/trajectory.png)
+
+A sandboxed Claude agent authored a monocular visual-odometry algorithm **from scratch**
+(`goodFeaturesToTrack` + optical-flow tracking with a wider keyframe baseline, SIFT fallback,
+keyframe interpolation). An independent verifier ran it on a **held-out** real trajectory it
+never saw and measured **ATE-RMSE = 0.052 m** (≤ the 0.134 m bar — and better than the classical
+ORB-VO reference baseline of 0.089 m). The agent never saw the ground truth and could not edit
+the grader.
+
+Full-resolution video (camera feed + trajectory): [`artifacts/demo/vo_demo.mp4`](artifacts/demo/vo_demo.mp4) ·
+the algorithm it wrote: [`artifacts/agent_authored_vo_tum_v2.py`](artifacts/agent_authored_vo_tum_v2.py) ·
+write-up: [`claudedocs/trial_track_b_tum_2026-06-02.md`](claudedocs/trial_track_b_tum_2026-06-02.md).
 
 ## Run it (10 seconds, offline — no Docker, GPU, or API key)
 
