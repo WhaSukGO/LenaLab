@@ -139,3 +139,28 @@ graded the left artifact automatically — no manual salvage needed. A backgroun
 (kill any sandbox container running >360 s) guarded the unattended run and fired zero kills
 (the run was healthy throughout). Demo regenerated from v2:
 `artifacts/demo/{trajectory.png, vo_demo.mp4, vo_demo.gif}` (ATE 0.052 m).
+
+---
+
+## 10. Improvement experiment — RGB-D + generalization + RPE
+
+Motivated by the analysis that the monocular setup discards depth, scores on one sequence,
+and reports only ATE. New modules (all in `vo_lab/plugins/vo_rgbd.py` + `vo_ref/run_rgbd.py`
++ `vo_ref/eval_rgbd.py`):
+
+1. **Depth exposed (RGB-D)** — the provider materializes the TUM depth channel
+   (`depth_%04d.png`, metres = pixel / 5000) so the solver can recover **metric** scale.
+2. **Generalization grader** — runs the solver's code on **held-out *sequences* it never
+   authored against** (`seq_*/input`), with GT isolated at `seq_*/gt.txt`. Scored with
+   **SE(3)** alignment (no scale freebie) so depth must actually be used; reports ATE, **RPE**
+   (drift), and a scale-error diagnostic.
+
+**Reference RGB-D VO (3D-2D PnP) validation on real data (local, non-billed):** mean
+held-out ATE on the *unseen* `fr1_desk` = **0.057 m**, RPE 0.011, **scale_err 0.077**
+(near-metric — depth works). Degenerate control = 0.70 m → REJECTED; gate **OPEN**, bar
+0.086 m. The discrimination margin (~12×) is far wider than the monocular gate's.
+
+Run: `python -m vo_lab.run_vo_tum_rgbd_calibration` (local) →
+`python -m vo_lab.run_vo_tum_rgbd_implement 0.086` (live, billed). Offline coverage:
+`tests/test_vo_rgbd_provider.py` (depth exposure + GT isolation). The live RGB-D agent run
+is pending.

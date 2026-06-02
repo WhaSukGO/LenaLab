@@ -76,6 +76,60 @@ def reference_author():
     return author
 
 
+# --- RGB-D + generalization experiment ---------------------------------------------------
+
+_RGBD_EVAL_CODE = (Path(VO_CODE_DIR) / "eval_rgbd.py").read_text()      # harness-owned grader
+_RGBD_REFERENCE_MAIN = (Path(VO_CODE_DIR) / "run_rgbd.py").read_text()  # known-good baseline
+
+RGBD_TASK_DESCRIPTION = (
+    "Implement an RGB-D visual-odometry algorithm. From $LAB_DATA read grayscale frames "
+    "(frame_%04d.png), aligned 16-bit depth (depth_%04d.png), and intrinsics.txt "
+    "(fx fy cx cy depth_scale; metric depth in metres = depth_png / depth_scale). USE THE "
+    "DEPTH to recover ABSOLUTE (metric) scale — back-project features to 3-D and estimate "
+    "pose (e.g. 3D-2D PnP), so the trajectory is metric (no scale ambiguity). Write "
+    "$LAB_ARTIFACTS/traj.txt with one `tx ty tz` (camera centre) per frame, in order. You "
+    "will be graded on MULTIPLE held-out sequences you never see, with SE(3) (metric) "
+    "alignment — so it must generalize and get scale right. Do not read any ground truth.")
+
+
+def vo_impl_task_rgbd(threshold: float, *, dev: str = "fr1_xyz",
+                      heldout: tuple[str, ...] = ("fr1_desk",)):
+    """RGB-D Track B task: graded by the generalization grader (runs the authored code on
+    unseen sequences, SE(3)-metric ATE/RPE). The bar is derived from the reference RGB-D VO."""
+    from ..plugins.vo_rgbd import rgbd_datasets
+
+    return ImplementationTask(
+        description=RGBD_TASK_DESCRIPTION,
+        framework=_CPU_FW,
+        entry_command='python3 "$LAB_CODE/main.py"',
+        eval_command='python3 "$LAB_CODE/eval.py"',   # ScriptEvaluator restores eval.py = grader
+        eval_code=_RGBD_EVAL_CODE,
+        metric="ate_rmse", op="<=", threshold=threshold,
+        datasets=rgbd_datasets(dev, heldout),
+        entry_filename="main.py",
+    )
+
+
+def rgbd_reference_author():
+    """Writes the reference RGB-D VO as main.py (baseline + offline pipeline proof, no API)."""
+    def author(task, code_dir: Path, rec) -> Usage:
+        (Path(code_dir) / "main.py").write_text(_RGBD_REFERENCE_MAIN)
+        return Usage()
+    return author
+
+
+def degenerate_author():
+    """Writes a main.py that emits a static (origin) trajectory — the negative control."""
+    src = ("import os, glob, numpy as np\n"
+           "d=os.environ['LAB_DATA']; a=os.environ['LAB_ARTIFACTS']; os.makedirs(a,exist_ok=True)\n"
+           "n=len(glob.glob(os.path.join(d,'frame_*.png')))\n"
+           "np.savetxt(os.path.join(a,'traj.txt'), np.zeros((n,3)), fmt='%.6f')\n")
+    def author(task, code_dir: Path, rec) -> Usage:
+        (Path(code_dir) / "main.py").write_text(src)
+        return Usage()
+    return author
+
+
 def resilient_sdk_author(job_runner, image_registry, dataset_cache, *,
                          model: str = "claude-sonnet-4-6", max_turns: int = 80):
     """A live sandboxed author that does NOT discard work when the session ends early.
