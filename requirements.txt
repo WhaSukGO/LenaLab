@@ -1,0 +1,5 @@
+# ver3 (vo_lab) imports ver2 (Touchstone) for the verifier spine — keep a checkout of
+# blueberry_ver2 as a sibling dir, or set VER2_PATH. ver2 brings pyyaml / claude-agent-sdk.
+numpy>=1.24
+opencv-python>=4.8
+pytest>=8.0

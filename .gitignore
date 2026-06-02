@@ -1,0 +1,19 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+# lab run state / caches (per-run dirs created by the harness)
+_*_run/
+state/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# os
+.DS_Store

@@ -1,0 +1,15 @@
+# CPU sandbox image for Track B live authoring + eval (numpy + opencv, no CUDA needed).
+# The classical-VO offline tests run in LOCAL mode and need NO image; this is only for the
+# LIVE Implementer, whose sandboxed agent runs code inside a container.
+#
+# Build + register (once Docker Desktop WSL integration is on):
+#   docker build -f docker/Dockerfile.cpu-opencv -t vo-cpu-opencv:1 .
+#   # then in images/registry.yaml add a row whose key contains "cpu":
+#   #   - key: cpu-opencv
+#   #     image: "vo-cpu-opencv:1"
+#   #     cuda: ""
+#   #     healthcheck: "python -c 'import cv2, numpy; print(cv2.__version__)'"
+# Verify:
+#   docker run --rm vo-cpu-opencv:1 python -c "import cv2, numpy; print(cv2.__version__)"
+FROM python:3.11-slim
+RUN pip install --no-cache-dir numpy "opencv-python-headless>=4.8"

@@ -1,0 +1,20 @@
+# CUDA image matrix for the VO lab (mirrors ver2's images/registry.yaml).
+# Pre-built images only; runtime builds are disabled (that was a resource sink before).
+#
+# The classical-OpenCV MVP runs in LOCAL mode (CPU), so it needs NO image — this file may
+# stay empty. The rows below are the later learned-VO (DPVO/DROID) upgrade path: add a
+# pinned, pre-built image that already contains a CUDA-compiled torch + the VO deps, then
+# switch the contract's framework + job_mode="docker".
+images:
+  # Track B live authoring + eval sandbox (CPU; numpy + opencv). Built from
+  # docker/Dockerfile.cpu-opencv. Key contains "cpu" to match FrameworkSpec(name="cpu").
+  - key: cpu-opencv
+    image: "vo-cpu-opencv:1"
+    cuda: ""
+    healthcheck: "python -c 'import cv2, numpy; print(cv2.__version__)'"
+
+# --- Learned VO upgrade path (DPVO/DROID on the RTX 3080) --------------------------------
+#   - key: torch-2.4-cu121-vo
+#     image: "<prebuilt VO image with torch+cuda+evo, pinned by digest>"
+#     cuda: "12.1"
+#     healthcheck: "python -c 'import torch; assert torch.cuda.is_available()'"
