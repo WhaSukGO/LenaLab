@@ -13,6 +13,7 @@ and adds the vision domain. The harness is domain-agnostic (a domain is a plugin
 `{dataset, oracle/metric, held-out}`); the first and current domain is **Visual Odometry**.
 The Python package is `vo_lab`.
 
+**How it works (architecture + diagrams + where the AI is involved):** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
 
 ## Demo — a Claude agent wrote this VO; the verifier judged it on real footage
