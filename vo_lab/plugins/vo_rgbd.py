@@ -47,9 +47,11 @@ SEQS = {
 
 def rgbd_datasets(dev: str = "fr1_xyz", heldout: tuple[str, ...] = ("fr1_desk",)) -> list[DatasetRef]:
     """Dev sequence (agent authors here) + held-out sequences (graded, never authored on)."""
+    # NOTE: names become cache *directory* names, which become Docker -v mount paths — they
+    # MUST NOT contain ':' (Docker volume separator). Keep them path/mount-safe.
     return [
-        DatasetRef(name=f"vo-rgbd-dev:{dev}", source=SEQS[dev][0]),
-        DatasetRef(name="vo-rgbd-heldout:" + "+".join(heldout),
+        DatasetRef(name=f"vo-rgbd-dev-{dev}", source=SEQS[dev][0]),
+        DatasetRef(name="vo-rgbd-heldout-" + "_".join(heldout),
                    source=";".join(SEQS[s][0] for s in heldout), held_out=True),
     ]
 
