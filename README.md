@@ -19,22 +19,32 @@ See `claudedocs/` for the research report, architecture design, and the trial wr
 ## Demo — a Claude agent wrote this VO; the verifier judged it on real footage
 
 <p align="center">
-  <img src="artifacts/demo/vo_demo.gif" width="420" alt="Agent-authored monocular VO tracing the camera path (red) against ground truth (black) on TUM fr1/xyz"><br>
-  <em>Estimated camera path (red, Sim(3)-aligned) vs ground truth (black), traced over 200 real frames.</em>
+  <img src="artifacts/demo_rgbd/vo_demo.gif" width="420" alt="Agent-authored RGB-D VO tracing the camera path (red) against ground truth (black) on the unseen TUM fr1/desk"><br>
+  <em>Agent-authored RGB-D VO on an <strong>unseen</strong> sequence (TUM fr1/desk): estimated path (red) vs ground truth (black).</em>
 </p>
 
-![Agent-authored monocular VO vs ground truth on TUM fr1/xyz — ATE 0.052 m, Sim(3)-aligned](artifacts/demo/trajectory.png)
+![Agent-authored RGB-D VO vs ground truth on the unseen TUM fr1/desk](artifacts/demo_rgbd/trajectory.png)
 
-A sandboxed Claude agent authored a monocular visual-odometry algorithm **from scratch**
-(`goodFeaturesToTrack` + optical-flow tracking with a wider keyframe baseline, SIFT fallback,
-keyframe interpolation). An independent verifier ran it on a **held-out** real trajectory it
-never saw and measured **ATE-RMSE = 0.052 m** (≤ the 0.134 m bar — and better than the classical
-ORB-VO reference baseline of 0.089 m). The agent never saw the ground truth and could not edit
-the grader.
+A sandboxed Claude agent authored an **RGB-D visual-odometry algorithm from scratch** (SIFT →
+3D-2D PnP RANSAC, KLT optical-flow fallback, keyframe recovery; depth for metric scale). The
+independent verifier ran it on a **held-out sequence it never saw** (`fr1/desk`, a different
+scene than the dev `fr1/xyz`), scored with **SE(3) metric** alignment (no scale freebie), and
+measured **ATE-RMSE = 0.033 m** (RPE 0.010, scale-error 0.03 — i.e. near-perfect absolute
+scale). It cleared the 0.086 m bar and beat the classical RGB-D reference (0.057 m). The agent
+never saw the ground truth and could not edit the grader.
 
-Full-resolution video (camera feed + trajectory): [`artifacts/demo/vo_demo.mp4`](artifacts/demo/vo_demo.mp4) ·
-the algorithm it wrote: [`artifacts/agent_authored_vo_tum_v2.py`](artifacts/agent_authored_vo_tum_v2.py) ·
+Algorithm: [`artifacts/agent_authored_vo_rgbd_v1.py`](artifacts/agent_authored_vo_rgbd_v1.py) ·
+video: [`artifacts/demo_rgbd/vo_demo.mp4`](artifacts/demo_rgbd/vo_demo.mp4) ·
 write-up: [`claudedocs/trial_track_b_tum_2026-06-02.md`](claudedocs/trial_track_b_tum_2026-06-02.md).
+
+<details><summary>Earlier monocular result (same lab, harder-to-trust metric)</summary>
+
+The first domain was monocular VO: an agent-authored algorithm scored **ATE 0.052 m**
+(Sim(3)-aligned, scale-corrected) on held-out `fr1/xyz`. Demo:
+[`artifacts/demo/`](artifacts/demo) · algorithm:
+[`artifacts/agent_authored_vo_tum_v2.py`](artifacts/agent_authored_vo_tum_v2.py). The RGB-D
+result above is stronger: it's **metric** (no scale gift) and on an **unseen** scene.
+</details>
 
 ## Run it (10 seconds, offline — no Docker, GPU, or API key)
 

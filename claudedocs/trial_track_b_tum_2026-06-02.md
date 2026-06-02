@@ -162,5 +162,25 @@ held-out ATE on the *unseen* `fr1_desk` = **0.057 m**, RPE 0.011, **scale_err 0.
 
 Run: `python -m vo_lab.run_vo_tum_rgbd_calibration` (local) →
 `python -m vo_lab.run_vo_tum_rgbd_implement 0.086` (live, billed). Offline coverage:
-`tests/test_vo_rgbd_provider.py` (depth exposure + GT isolation). The live RGB-D agent run
-is pending.
+`tests/test_vo_rgbd_provider.py` (depth exposure + GT isolation).
+
+**Live RGB-D agent run — VERIFIED.** A sandboxed Claude agent authored a multi-strategy
+RGB-D VO (SIFT→3D-2D PnP RANSAC primary, KLT optical-flow fallback, keyframe recovery; depth
+for metric scale). Graded on the **unseen** `fr1_desk` with SE(3)-metric alignment:
+**ATE-RMSE = 0.033 m**, RPE 0.010, **scale_err 0.032** (near-perfect absolute scale) — under
+the 0.086 m bar and better than the classical RGB-D reference (0.057 m). This is the strongest
+and most honest result in the project: metric (no scale freebie) and on a scene the solver
+never authored against. Algorithm archived `artifacts/agent_authored_vo_rgbd_v1.py`; demo
+`artifacts/demo_rgbd/`.
+
+| | monocular v2 | reference RGB-D | **agent RGB-D** |
+|---|---|---|---|
+| held-out ATE | 0.052 m (Sim3) | 0.057 m (SE3) | **0.033 m (SE3)** |
+| alignment | scale-corrected | metric | **metric** |
+| scored on | same sequence | unseen sequence | **unseen sequence** |
+
+**Process note (a bug + fix).** The first live RGB-D attempt FAILED after ~1.17M tokens: the
+RGB-D `DatasetRef` names contained a `:` which broke Docker `-v host:container` mounts, so
+every sandbox run errored (the agent authored blind). Local-mode calibration had passed
+because it uses no `-v` mounts. Fix: mount-safe dataset names + a **Docker-mode** reference
+dry-run (not just local) to validate the live path. The relaunch then succeeded.
