@@ -184,3 +184,31 @@ RGB-D `DatasetRef` names contained a `:` which broke Docker `-v host:container` 
 every sandbox run errored (the agent authored blind). Local-mode calibration had passed
 because it uses no `-v` mounts. Fix: mount-safe dataset names + a **Docker-mode** reference
 dry-run (not just local) to validate the live path. The relaunch then succeeded.
+
+---
+
+## 11. SLAM with loop closure — reference works; live agent attempt FAILED (honest)
+
+**Reference SLAM works (validated, committed).** `vo_ref/run_slam.py`: RGB-D VO front-end →
+keyframes → geometrically-verified loop detection → self-contained SE(3) pose-graph
+optimization (scipy). On the `fr1_room` loop sequence: VO-only ATE **0.86 m** vs reference
+SLAM **0.23 m** (~73% drift reduction; 12–42 loop closures). Docker calibration gate OPEN
+(bar 0.347 m); VO-only and a degenerate control both fail it → loop closure is *necessary*.
+
+**Live agent SLAM attempt — REJECTED (a genuine negative result).** A sandboxed Claude agent
+authored a 352-line SLAM (SIFT matching + loop detection + pose-graph). Outcome:
+- Graded fairly (run to completion), its trajectory ATE = **412 m** — the **pose-graph
+  optimization diverged** (catastrophic blow-up on a 3 m-scale trajectory). The verifier
+  correctly **REJECTED** it — which is the lab working as intended (it caught a broken result).
+- Compounded by **my harness misconfiguration**: the hang watchdog killed at 480 s, but the
+  agent's SLAM took ~507 s *inside the container* (slower than its 153 s host run — fewer
+  cores), and the grader's own timeout is 600 s. So every in-container test was killed
+  *before finishing* → the agent never saw its own output and couldn't debug the divergence.
+  Watchdog threshold corrected to 900 s (> grader's 600 s).
+
+**Takeaways.** (1) The verifier did its job — a broken SLAM scored 412 m and was rejected;
+nothing false was accepted. (2) SLAM-from-scratch in one session is materially harder than
+VO/RGB-D for the agent (it got the *structure* right but the optimizer diverged). (3) The
+runtime/safety budget must let the agent actually *see* its results (watchdog > grader
+timeout; per-run fast enough to iterate). (4) Loop closure itself is demonstrated in the repo
+via the working reference. The live agent SLAM is left as an open frontier, not a success.
