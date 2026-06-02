@@ -15,6 +15,17 @@ The Python package is `vo_lab`.
 
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
 
+## Demo — a Claude agent wrote this VO; the verifier judged it on real footage
+
+![Agent-authored monocular VO vs ground truth on TUM fr1/xyz — ATE 0.124 m, Sim(3)-aligned](artifacts/demo/trajectory.png)
+
+A sandboxed Claude agent authored a 360-line PnP-centric monocular visual-odometry algorithm
+from scratch; an independent verifier ran it on a **held-out** real trajectory it never saw
+and measured **ATE-RMSE = 0.124 m** (≤ the 0.134 m bar). Estimated path in red (Sim(3)-aligned),
+ground truth in black. Demo video: [`artifacts/demo/vo_demo.mp4`](artifacts/demo/vo_demo.mp4) ·
+the algorithm it wrote: [`artifacts/agent_authored_vo_tum_v1.py`](artifacts/agent_authored_vo_tum_v1.py) ·
+full write-up: [`claudedocs/trial_track_b_tum_2026-06-02.md`](claudedocs/trial_track_b_tum_2026-06-02.md).
+
 ## Run it (10 seconds, offline — no Docker, GPU, or API key)
 
 ```bash
