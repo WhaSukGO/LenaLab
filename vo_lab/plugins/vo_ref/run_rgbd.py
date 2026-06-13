@@ -33,7 +33,11 @@ def main() -> int:
 
     fx, fy, cx, cy, dscale = np.loadtxt(data / "intrinsics.txt")
     K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
-    orb = cv2.ORB_create(nfeatures=2000)
+    # Tunable params (env-driven, defaults = original behavior) — the knobs Track A's
+    # committee may select+clamp; they genuinely affect held-out ATE on real data.
+    nfeatures = int(os.environ.get("LAB_NFEATURES", 2000))
+    reproj = float(os.environ.get("LAB_REPROJ", 3.0))
+    orb = cv2.ORB_create(nfeatures=nfeatures)
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def load(i):
@@ -73,7 +77,7 @@ def main() -> int:
                 if len(obj) >= 6:
                     obj = np.array(obj, np.float64); img = np.array(img, np.float64)
                     okp, rvec, tvec, inl = cv2.solvePnPRansac(
-                        obj, img, K, None, reprojectionError=3.0, iterationsCount=100)
+                        obj, img, K, None, reprojectionError=reproj, iterationsCount=100)
                     if okp and inl is not None and len(inl) >= 6:
                         R, _ = cv2.Rodrigues(rvec)
                         M = np.eye(4); M[:3, :3] = R; M[:3, 3] = tvec.ravel()  # cam_i -> cam_{i+1}

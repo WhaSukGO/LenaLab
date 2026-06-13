@@ -13,6 +13,11 @@ and adds the vision domain. The harness is domain-agnostic (a domain is a plugin
 `{dataset, oracle/metric, held-out}`); the first and current domain is **Visual Odometry**.
 The Python package is `vo_lab`.
 
+> ## 📊 **[Results & Highlights → `RESULTS.md`](RESULTS.md)**
+> Real km-scale SLAM (stereo DROID **0.06–0.20%** on KITTI loops, visualized), the variance-audited
+> sim-to-real fidelity ladder, the scene-dependent sim-faithfulness result, and a **trustworthiness audit**
+> that retracted one flagship and verified the rest. **Start there for the evidence.**
+
 **How it works (architecture + diagrams + where the AI is involved):** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
 

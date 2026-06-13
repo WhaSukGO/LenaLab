@@ -70,11 +70,12 @@ def build_vo_committee_harness(root: str | Path, *, job_mode: str = "local",
                                images_path: str | Path = _IMAGES, model: str | None = None,
                                run_fn=None, max_total_tokens: int = 4_000_000,
                                max_experiments: int = 50, lease_timeout_s: float = 900.0,
-                               seed: int = 1234) -> Harness:
+                               seed: int = 1234, provider=None, menu=None) -> Harness:
     """Track A: experiments proposed by the VO expert committee (menu-constrained), judged
     by the independent ScriptEvaluator on the held-out split. Calibration still uses the
     fixed reference contracts (vo_calibration_records). `run_fn` is injectable so the whole
-    lineage is testable offline without an API key."""
+    lineage is testable offline without an API key. `provider`/`menu` let the same machinery
+    run on the synthetic world (default) or REAL TUM data with a real recipe."""
     from lab.agents.sdk import DEFAULT_MODEL, run_agent
     from lab.history import ResearchHistory
 
@@ -82,9 +83,9 @@ def build_vo_committee_harness(root: str | Path, *, job_mode: str = "local",
 
     h = build_vo_harness(root, job_mode=job_mode, images_path=images_path,
                          max_total_tokens=max_total_tokens, max_experiments=max_experiments,
-                         lease_timeout_s=lease_timeout_s, seed=seed)
+                         lease_timeout_s=lease_timeout_s, seed=seed, provider=provider)
     h.planner = vo_committee(model=model or DEFAULT_MODEL, run_fn=run_fn or run_agent,
-                             notebook=h.notebook, history=ResearchHistory(h.registry))
+                             notebook=h.notebook, history=ResearchHistory(h.registry), menu=menu)
     return h
 
 

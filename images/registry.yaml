@@ -13,8 +13,25 @@ images:
     cuda: ""
     healthcheck: "python -c 'import cv2, numpy; print(cv2.__version__)'"
 
-# --- Learned VO upgrade path (DPVO/DROID on the RTX 3080) --------------------------------
-#   - key: torch-2.4-cu121-vo
-#     image: "<prebuilt VO image with torch+cuda+evo, pinned by digest>"
-#     cuda: "12.1"
-#     healthcheck: "python -c 'import torch; assert torch.cuda.is_available()'"
+  # Learned-VO path (Track B/A on the RTX 3080). Pure-PyTorch + CUDA runtime, NO custom
+  # CUDA extensions (de-risked path). Built from docker/Dockerfile.gpu-torch. Key contains
+  # "torch" to match FrameworkSpec(name="torch"); verified: torch 2.4.0, cuda available.
+  - key: torch-cu121-vo
+    image: "vo-gpu-torch:1"
+    cuda: "12.1"
+    healthcheck: "python -c 'import torch; assert torch.cuda.is_available()'"
+
+  # C++ VIO path (Senior-SLAM-role module): Ceres + Eigen + OpenCV (apt, CPU). Built from
+  # docker/Dockerfile.cpp-ceres. Key contains "cpp-ceres" to match FrameworkSpec(name="cpp-ceres").
+  # The solver source is seeded into code_dir and built with CMake at entry.
+  - key: cpp-ceres-vio
+    image: "vo-cpp-ceres:1"
+    cuda: ""
+    healthcheck: "bash -c 'test -f /usr/include/ceres/ceres.h && echo ceres-ok'"
+
+  # Learned-SLAM SOTA (DROID-SLAM) for the verification benchmark. MATCHED env (torch 1.10/cu11.3);
+  # de-risk PASSED (lietorch + droid_backends compile on sm_86). Built from docker/Dockerfile.droid.
+  - key: droid-slam
+    image: "vo-droid:1"
+    cuda: "11.3"
+    healthcheck: "python -c 'import torch,lietorch,droid_backends; assert torch.cuda.is_available()'"

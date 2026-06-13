@@ -18,20 +18,23 @@ from .factory import build_vo_implementer_harness
 from .plugins.vo_rgbd import TUMRGBDProvider
 
 
-def main(root: str = "./_vo_slam_run", seq: str = "fr1_room", stride: int = 3,
+def main(root: str = "./_vo_slam_run", dev: str = "fr1_room",
+         heldout: tuple[str, ...] = ("fr2_desk",), stride: int = 3,
          max_frames: int = 460, margin: float = 1.5) -> int:
+    # DISJOINT dev/held-out loop sequences (the original calibration was train-on-test).
     def prov():
-        return TUMRGBDProvider(dev=seq, heldout=(seq,), stride=stride, max_frames=max_frames)
+        return TUMRGBDProvider(dev=dev, heldout=heldout, stride=stride, max_frames=max_frames)
 
     def measure(label, author):
-        h = build_vo_implementer_harness(root, task=vo_impl_task_slam(1e9, dev=seq, heldout=(seq,)),
+        h = build_vo_implementer_harness(root, task=vo_impl_task_slam(1e9, dev=dev, heldout=heldout),
                                          provider=prov(), author_fn=author, job_mode="docker")
         rec = h.run_experiment(ExperimentRecord(id=f"slam-cal-{label}", hypothesis=label))
         if not (rec.verdict and "ate_rmse" in rec.verdict.measured_metrics):
             print(f"{label} failed; log: {rec.log_path}"); return None
         return float(rec.verdict.measured_metrics["ate_rmse"])
 
-    print(f"Calibrating SLAM on {seq} (loop sequence, stride={stride}, {max_frames} frames)...")
+    print(f"Calibrating SLAM: dev={dev} held-out={heldout} (loop seqs, stride={stride}, "
+          f"{max_frames} frames)...")
     slam = measure("slam", slam_reference_author())          # reference SLAM (loop closure)
     if slam is None:
         return 1

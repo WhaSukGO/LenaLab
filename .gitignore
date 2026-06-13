@@ -1,19 +1,29 @@
+
+!.env.example
+# lab run state / caches (per-run dirs created by the harness)
+# os
+# python
 # secrets — never commit
+*.egg-info/
+*.pyc
+.DS_Store
 .env
 .env.*
-!.env.example
-
-# lab run state / caches (per-run dirs created by the harness)
-_*_run/
-state/
-
-# python
-__pycache__/
-*.pyc
-*.egg-info/
+.private/
 .pytest_cache/
 .venv/
+_*_run*/
+_*_run/
+__pycache__/
+_parallel_val/
+_vo_*/
+_vo_*_cal/
+_vo_m2_tournament/
+artifacts/slam_benchmark/*.mp4
+artifacts/slam_benchmark/gsplat_seq07/*.pth
+artifacts/slam_benchmark/recon_*/
+cpp_vio/build/
+data/kitti_raw/
+roles/
+state/
 venv/
-
-# os
-.DS_Store

@@ -42,7 +42,8 @@ LenaLab/  (this repo)                          blueberry_ver2 / "Touchstone"  (i
    ├ agents/                                       ├ gpu_lease.py   single-GPU mutex
    │  ├ vo_committee.py   Track A (meeting)         ├ image_registry CUDA image matrix
    │  └ vo_implementer.py Track B (authoring)       ├ dataset_cache  download-once cache
-   ├ factory.py     wires a Harness                 ├ job_runner.py  Docker/local job exec
+   ├ memory.py     cross-run failure ledger         ├ job_runner.py  Docker/local job exec
+   ├ factory.py     wires a Harness                 ├ notebook.py    per-run lab notebook
    └ run_*.py       entry points                    └ models.py      ExperimentContract, …
 ```
 
@@ -144,6 +145,26 @@ The harness owns `eval.py` (the grader) and the oracle (metric + threshold come 
 task), so the agent **cannot grade or game its own work**. Even if it writes a fake grader,
 the evaluator re-instantiates the real one before judging (anti-tamper).
 
+### Cross-run failure memory (`memory.py`) — the structured handoff
+
+A fresh authoring session has no memory of the last one, so a relaunched agent used to
+re-tread the same dead end (the SLAM agent never learned its pose graph had diverged). The
+fix is a **repo-level, cross-run failure ledger**, keyed by domain (`slam` / `vo-rgbd` /
+`vo-mono`):
+
+```
+  experiment REJECTED/REJECTED ─► record_from_experiment(domain, rec) ─► lab_memory/failures.{jsonl,md}
+                                                                              │
+  next live run ◄── inject_failure_memory(task, domain) prepends prior failures ──┘
+                    to task.description  →  the agent reads "last time the optimizer
+                    diverged to 412 m; here's how to avoid it" BEFORE it starts
+```
+
+This is pure solver-side plumbing — the verifier is untouched. The three live Track-B entry
+points inject memory **before** the run and record the failure **after** (only on
+REJECTED/FAILED). It augments ver2's per-run `failed_approaches.md` (which starts blank on
+each relaunch) with memory that *persists across runs*.
+
 ---
 
 ## 6. Data & grading (the integrity mechanics)
@@ -189,7 +210,8 @@ API key** (+ Docker for Track B) — not on any interactive session.
 | Solver games scale / picks easy data / edits grader | fixed alignment, **held-out + GT isolated**, grader re-instantiated |
 | Overfit one scene | RGB-D grader scores on **unseen sequences** (generalization) |
 | A turn limit discards working code | **resilient author** grades whatever the agent left |
-| A hung container stalls the lab | external **watchdog** kills sandbox jobs over a time limit |
+| A hung container stalls the lab | external **watchdog** kills sandbox jobs (threshold > grader timeout) |
+| A relaunched agent re-treads a known dead end | **cross-run failure memory** injected into the next session's prompt |
 
 ---
 

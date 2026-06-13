@@ -16,17 +16,21 @@ from lab.models import ExperimentRecord, Status
 
 from .agents.vo_implementer import resilient_sdk_author, vo_impl_task_slam
 from .factory import build_vo_implementer_harness
+from .memory import inject_memory, record_from_experiment
 from .plugins.vo_rgbd import TUMRGBDProvider
 
 
 def main(bar: float, root: str = "./_vo_slam_impl_run", model: str = "claude-sonnet-4-6",
-         seq: str = "fr1_room", stride: int = 3, max_frames: int = 460) -> int:
+         dev: str = "fr1_room", heldout: tuple[str, ...] = ("fr2_desk",),
+         stride: int = 3, max_frames: int = 460) -> int:
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.path.exists(".env")):
         print("Live Track B needs ANTHROPIC_API_KEY (billed)."); return 2
 
-    task = vo_impl_task_slam(bar, dev=seq, heldout=(seq,))
+    # DISJOINT dev/held-out (the original run was train-on-test; see trial-doc §12 correction).
+    # Feed prior experience (verified approaches + failed attempts) into the author's prompt.
+    task = inject_memory(vo_impl_task_slam(bar, dev=dev, heldout=heldout), "slam")
     h = build_vo_implementer_harness(root, task=task,
-                                     provider=TUMRGBDProvider(dev=seq, heldout=(seq,),
+                                     provider=TUMRGBDProvider(dev=dev, heldout=heldout,
                                                               stride=stride, max_frames=max_frames),
                                      job_mode="docker", lease_timeout_s=3600.0)
     try:
@@ -38,7 +42,7 @@ def main(bar: float, root: str = "./_vo_slam_impl_run", model: str = "claude-son
     h.planner.author_fn = resilient_sdk_author(h.job_runner, h.image_registry, h.dataset_cache,
                                                model=model, max_turns=100)
     print(f"Implementer: sandboxed agent authoring RGB-D SLAM w/ loop closure "
-          f"(bar={bar} m, seq={seq})...\n")
+          f"(bar={bar} m, dev={dev}, held-out={heldout})...\n")
     rec = h.run_experiment(ExperimentRecord(id="vo-slam-impl-001",
                                             hypothesis="implement RGB-D SLAM with loop closure"))
     print("=" * 64)
@@ -50,6 +54,13 @@ def main(bar: float, root: str = "./_vo_slam_impl_run", model: str = "claude-son
         print("--- authored main.py (first 30 lines) ---")
         print("\n".join((Path(rec.contract.code_dir) / "main.py").read_text().splitlines()[:30]))
     print("=" * 64)
+    # Close the loop: a rejected/failed attempt becomes memory for the next session.
+    art = None
+    if rec.contract and (Path(rec.contract.code_dir) / "main.py").exists():
+        art = str(Path(rec.contract.code_dir) / "main.py")
+    entry = record_from_experiment("slam", rec, artifact=art)
+    if entry:
+        print(f"  recorded outcome to cross-run memory (domain=slam, exp={rec.id})")
     return 0 if rec.status == Status.VERIFIED else 1
 
 

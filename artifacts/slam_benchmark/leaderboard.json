@@ -1,0 +1,8 @@
+{
+  "seq_07_695m_loop": {
+    "droid_stereo_m": 0.39,
+    "droid_mono_m": 24.23,
+    "classical_stereo_vo_m": 3.07,
+    "cpp_ceres_vo": "DIVERGED (cannot handle km-scale)"
+  }
+}

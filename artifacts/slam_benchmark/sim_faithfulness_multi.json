@@ -1,0 +1,51 @@
+[
+  {
+    "scene": "city_20110926_0013",
+    "stride": 2,
+    "droid_ate_real_m": 0.3039271675283142,
+    "droid_ate_rendered_m": 0.4400817650566642,
+    "delta_m": 0.13615459752834996
+  },
+  {
+    "scene": "residential_20110926_0079",
+    "stride": 2,
+    "droid_ate_real_m": 0.09509784582893323,
+    "droid_ate_rendered_m": 0.08340435233626751,
+    "delta_m": 0.011693493492665713
+  },
+  {
+    "scene": "city_20110926_0001",
+    "stride": 2,
+    "droid_ate_real_m": 0.0833019794387202,
+    "droid_ate_rendered_m": 0.11558687861526822,
+    "delta_m": 0.03228489917654802
+  },
+  {
+    "scene": "city_20110926_0005",
+    "stride": 2,
+    "droid_ate_real_m": 0.4870714297277282,
+    "droid_ate_rendered_m": 0.5899637120853137,
+    "delta_m": 0.10289228235758552
+  },
+  {
+    "scene": "residential_20110926_0035",
+    "stride": 2,
+    "droid_ate_real_m": 0.10030346961755796,
+    "droid_ate_rendered_m": 0.11392161143945567,
+    "delta_m": 0.013618141821897717
+  },
+  {
+    "scene": "residential_20110926_0019",
+    "stride": 2,
+    "droid_ate_real_m": 0.6076911319470839,
+    "droid_ate_rendered_m": 2.8143810076686067,
+    "delta_m": 2.2066898757215228
+  },
+  {
+    "scene": "road_20110926_0015",
+    "stride": 2,
+    "droid_ate_real_m": 0.386634594919447,
+    "droid_ate_rendered_m": 9.753948527011719,
+    "delta_m": 9.367313932092271
+  }
+]

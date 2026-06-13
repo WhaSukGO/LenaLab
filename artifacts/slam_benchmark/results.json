@@ -1,0 +1,20 @@
+{
+  "grader": "Sim3 ATE (m)",
+  "drives": {
+    "city": "seq_city_20110926_0001",
+    "road": "seq_road_20110926_0015",
+    "residential": "seq_residential_20110926_0019"
+  },
+  "systems": {
+    "classical-stereo-vo (python)": {
+      "city": 0.16,
+      "residential": 0.93,
+      "road": 4.04
+    },
+    "cpp-ceres-vo (our C++)": {
+      "city": 0.08,
+      "residential": 100.76,
+      "road": 93.54
+    }
+  }
+}

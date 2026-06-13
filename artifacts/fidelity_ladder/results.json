@@ -1,0 +1,53 @@
+{
+  "test_seqs": [
+    "07",
+    "09"
+  ],
+  "domains": [
+    {
+      "name": "procedural",
+      "label": "procedural synth -> real",
+      "ate_rmse": 69.57,
+      "per_seq": {
+        "seq_07": 72.35,
+        "seq_09": 66.78
+      },
+      "status": "cached"
+    },
+    {
+      "name": "gaussian",
+      "label": "rendered -> real",
+      "ate_rmse": 27.11,
+      "per_seq": {
+        "seq_07": 34.31,
+        "seq_09": 19.91
+      },
+      "status": "done"
+    },
+    {
+      "name": "gaussian_aug",
+      "label": "rendered +viewpoint-aug -> real",
+      "ate_rmse": 26.88,
+      "per_seq": {
+        "seq_07": 31.82,
+        "seq_09": 21.93
+      },
+      "status": "done"
+    },
+    {
+      "name": "real",
+      "label": "real -> real",
+      "ate_rmse": 27.24,
+      "per_seq": {
+        "seq_07": 31.03,
+        "seq_09": 23.45
+      },
+      "status": "cached"
+    }
+  ],
+  "reference": {
+    "degenerate": 63.29,
+    "classical_vo_approx": 3.5,
+    "synthetic_in_domain": 0.45
+  }
+}

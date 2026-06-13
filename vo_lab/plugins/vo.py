@@ -168,6 +168,9 @@ VO_SCORE_BAR = 1.0 / (1.0 + ATE_THRESHOLD)   # ATE 0.40 <-> vo_score 0.714
 # mode (Track B live) resolves it via images/registry.yaml — a key containing "cpu". version
 # is "" so resolve() skips the version check and matches the cpu-opencv row.
 _CPU_FW = FrameworkSpec(name="cpu", version="", cuda="")
+# GPU image for the learned-VO path; resolves to the "torch-cu121-vo" row (key contains
+# "torch") -> vo-gpu-torch:1, run with --gpus all by the job_runner in docker mode.
+_GPU_FW = FrameworkSpec(name="torch", version="", cuda="12.1")
 
 
 def vo_recipe() -> Recipe:
@@ -191,6 +194,36 @@ def vo_recipe() -> Recipe:
 
 def vo_menu() -> Menu:
     return Menu([vo_recipe()])
+
+
+def vo_recipe_real(*, score_bar: float, datasets: list[DatasetRef],
+                   framework=_CPU_FW) -> Recipe:
+    """Track A on REAL TUM frames — the committee tunes feature count + RANSAC threshold +
+    Lowe ratio to minimise held-out Sim(3) ATE. Unlike the synthetic world, these knobs
+    genuinely move the metric (measured: ATE ~0.13 -> ~0.089 m as nfeatures 600 -> 1500),
+    so the autonomous lineage has a real improvement curve to discover."""
+    return Recipe(
+        id="orb-mono-vo-real",
+        description=("Classical ORB monocular VO on REAL TUM fr1/xyz frames; scored by "
+                     "held-out Sim(3)-aligned vo_score. Raise feature count for more matches, "
+                     "tune the RANSAC threshold for outlier rejection, optionally enable the "
+                     "Lowe ratio test (ratio>0)."),
+        framework=framework, code_dir=VO_CODE_DIR, datasets=datasets,
+        train_template=('LAB_NFEATURES={nfeatures} LAB_RANSAC_THRESH={ransac_thresh} '
+                        'LAB_RATIO={ratio} LAB_SEED={seed} python3 "$LAB_CODE/run.py"'),
+        eval_command='python3 "$LAB_CODE/eval.py"',
+        metric="vo_score", threshold=score_bar,
+        params=[
+            ParamSpec("nfeatures", "int", low=300, high=3000, default=600),
+            ParamSpec("ransac_thresh", "float", low=0.3, high=3.0, default=1.0),
+            ParamSpec("ratio", "float", low=0.0, high=0.9, default=0.0),
+        ],
+        max_wall_s=600.0,
+    )
+
+
+def vo_menu_real(*, score_bar: float, datasets: list[DatasetRef], framework=_CPU_FW) -> Menu:
+    return Menu([vo_recipe_real(score_bar=score_bar, datasets=datasets, framework=framework)])
 
 
 def vo_calibration_records(*, threshold: float = ATE_THRESHOLD,

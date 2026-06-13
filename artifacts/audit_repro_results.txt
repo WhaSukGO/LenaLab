@@ -1,0 +1,7 @@
+===== AUDIT REPRODUCTION RESULTS (2026-06-12) =====
+--- gaussian+aug variance (n=3) --- 26.49 ± 0.93 m  (within noise of rendered 27.35±1.49, real 25.61±1.64)
+--- contamination (Ep12) --- agent 1.197% (recorded) beats positive-control reference 1.711% (reproduced) -> HOLDS
+--- C++ VO Phase-1 (Ep18a) --- reproduced EXACTLY 2.18% (synth1 1.97, synth2 2.4) -> deterministic
+--- M1 BA (Ep9) --- recorded best 2.026%, attempts ranged 2.03-8.7%, re-run 2.914% -> VARIABLE not "robust" (corrected); near-miss regardless
+--- M3 VIO (Ep15) --- agent 3.830% (recorded, =blog); de-risk reproduced VO-alone 18.0% + ref VIO 4.2% -> HOLDS (agent beats VO-alone, ~ref)
+===== ALL AUDIT REPRODUCTIONS COMPLETE =====

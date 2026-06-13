@@ -1,0 +1,14 @@
+# CPU C++ image for the VIO module: Ceres + Eigen + OpenCV from apt (Ubuntu 22.04 — fast, reliable,
+# no source build). Mirrors the cpu-opencv / gpu-torch images; the C++ solver source is mounted/seeded
+# into the container and built with CMake at entry.
+#
+# Build:  docker build -f docker/Dockerfile.cpp-ceres -t vo-cpp-ceres:1 .
+# Verify: docker run --rm vo-cpp-ceres:1 bash -c 'cmake --version && test -f /usr/include/ceres/ceres.h && echo CERES_OK'
+# Register: images/registry.yaml row with key containing "cpp-ceres" -> image vo-cpp-ceres:1.
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential cmake pkg-config ca-certificates \
+      libceres-dev libeigen3-dev libopencv-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /code

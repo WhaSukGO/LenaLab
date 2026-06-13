@@ -1,0 +1,10 @@
+# GPU image for the learned-VO upgrade path (Track B/A on the RTX 3080).
+# Pure-PyTorch + CUDA runtime (NO custom CUDA extensions to compile — the de-risked path
+# from the research note: validate the learned/GPU pipeline with plain torch before DPVO).
+#
+#   docker build -f docker/Dockerfile.gpu-torch -t vo-gpu-torch:1 .
+#   docker run --rm --gpus all vo-gpu-torch:1 \
+#       python -c "import torch,cv2; print(torch.__version__, torch.cuda.is_available())"
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+RUN pip install --no-cache-dir "opencv-python-headless>=4.8" "numpy<2" scipy
+# headless opencv needs no X libs; runtime image already has CUDA + cuDNN for torch.

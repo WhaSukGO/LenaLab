@@ -17,6 +17,7 @@ from lab.models import ExperimentRecord, Status
 
 from .agents.vo_implementer import resilient_sdk_author, vo_impl_task_rgbd
 from .factory import build_vo_implementer_harness
+from .memory import inject_memory, record_from_experiment
 from .plugins.vo_rgbd import TUMRGBDProvider
 
 
@@ -26,7 +27,7 @@ def main(bar: float, root: str = "./_vo_rgbd_impl_run", model: str = "claude-son
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.path.exists(".env")):
         print("Live Track B needs ANTHROPIC_API_KEY (billed)."); return 2
 
-    task = vo_impl_task_rgbd(bar, dev=dev, heldout=heldout)
+    task = inject_memory(vo_impl_task_rgbd(bar, dev=dev, heldout=heldout), "vo-rgbd")
     h = build_vo_implementer_harness(root, task=task,
                                      provider=TUMRGBDProvider(dev=dev, heldout=heldout,
                                                               max_frames=max_frames),
@@ -51,6 +52,11 @@ def main(bar: float, root: str = "./_vo_rgbd_impl_run", model: str = "claude-son
         print("--- authored main.py (first 30 lines) ---")
         print("\n".join((Path(rec.contract.code_dir) / "main.py").read_text().splitlines()[:30]))
     print("=" * 64)
+    art = None
+    if rec.contract and (Path(rec.contract.code_dir) / "main.py").exists():
+        art = str(Path(rec.contract.code_dir) / "main.py")
+    if record_from_experiment("vo-rgbd", rec, artifact=art):
+        print(f"  recorded outcome to cross-run memory (domain=vo-rgbd, exp={rec.id})")
     return 0 if rec.status == Status.VERIFIED else 1
 
 

@@ -140,6 +140,11 @@ graded the left artifact automatically — no manual salvage needed. A backgroun
 (the run was healthy throughout). Demo regenerated from v2:
 `artifacts/demo/{trajectory.png, vo_demo.mp4, vo_demo.gif}` (ATE 0.052 m).
 
+> **⚠️ Correction (2026-06-04).** 0.052 m is monocular **Sim(3) shape** accuracy: the grader
+> rescales for free (the raw trajectory was ~40× the GT size, `recovered_scale ≈ 0.025`), so
+> "better than the 0.089 m reference" is a shape comparison, not metric, and is n=1 (no
+> variance). Graders now emit a `scale_implausible`/`caveats` field with every number.
+
 ---
 
 ## 10. Improvement experiment — RGB-D + generalization + RPE
@@ -212,3 +217,155 @@ VO/RGB-D for the agent (it got the *structure* right but the optimizer diverged)
 runtime/safety budget must let the agent actually *see* its results (watchdog > grader
 timeout; per-run fast enough to iterate). (4) Loop closure itself is demonstrated in the repo
 via the working reference. The live agent SLAM is left as an open frontier, not a success.
+
+---
+
+## 12. SLAM re-run — VERIFIED, after the watchdog fix + failure-memory loop (2026-06-03)
+
+The §11 attempt was left an open frontier. Two fixes shipped between sessions: the watchdog
+threshold was raised to **900 s** (> the 600 s grader, so in-container tests finish and the
+agent can debug), and a **cross-run failure-memory loop** (`vo_lab/memory.py`) now injects
+prior failures into the author's prompt — the 412 m divergence was backfilled into the ledger
+with a fix hint (`vo_lab/backfill_slam.py`).
+
+Re-running the **same task** (`fr1_room`, bar 0.347 m, root `_vo_slam_impl_run2`):
+
+| Metric | §11 (v1) | **§12 re-run (v2)** |
+|---|---|---|
+| Verdict | REJECTED | **VERIFIED** ✅ |
+| Held-out ATE (SE3 metric) | 412 m (diverged) | **0.185 m** |
+| RPE / scale_err | — | 0.024 / 0.127 |
+| vs reference SLAM (0.23 m) | — | **better** |
+| vs VO-only (0.86 m) | — | **4.6× better** |
+| Tokens / wall | (killed) | ~4.89 M / ~52 min |
+| Algorithm | `agent_authored_vo_slam_v1.py` | `agent_authored_vo_slam_v2.py` |
+
+**The failure memory was causally used.** The agent's own docstring: *"Pose graph:
+TRANSLATION-ONLY linear system (rotations fixed from VO) → sparse LSQR, guaranteed no
+divergence … Fallback: VO-only if … ill-conditioned."* It abandoned the non-linear pose graph
+that diverged in v1 for a provably-stable linear solve, added a VO-only fallback, and
+sanity-checks each loop constraint against VO before trusting it — directly answering the
+injected lesson ("DIVERGED / verify it beats VO-only"). The agent reached for a stable
+formulation *because it had been told what failed*. Demo figure:
+`artifacts/blog/ep5_slam_verified.png`.
+
+**Net:** the failure→memory→recovery loop works (the agent fixed its own divergence).
+
+> **⚠️ Correction (2026-06-04, external review).** This SLAM run graded on its TRAINING
+> sequence: `dev=fr1_room, heldout=(fr1_room,)` (identical frames/params). So **0.185 m is
+> in-sample, NOT a generalization result** — it does not show the SLAM transfers to an unseen
+> scene (unlike RGB-D fr1_xyz→fr1_desk and KITTI 00→05,07, which are disjoint). The recovery
+> narrative stands; the generalization claim does not. The SLAM config now refuses
+> same-sequence dev/held-out; a disjoint-sequence re-run (e.g. held-out fr2_desk, needs a
+> download) is the honest follow-up.
+
+---
+
+## 13. KITTI stereo — cross-domain generalization, VERIFIED first try (2026-06-03)
+
+Every prior trial was TUM (indoor, hand-held). The open question: did the agent learn *visual
+odometry*, or *TUM*? Test: **KITTI** outdoor driving — a new domain (large-scale forward
+motion, different image statistics) AND a new modality (**stereo**, never attempted before;
+prior tracks were mono/RGB-D). Stereo's calibrated baseline keeps scale observable, so the bar
+stayed honest: **SE(3) metric**, graded on unseen sequences. New code is solver-side only
+(`vo_kitti.py` provider + `run_kitti_stereo.py` reference); the grader `eval_rgbd.py` was
+**reused unchanged** — it is modality-agnostic (runs the authored code on each held-out seq,
+scores traj.txt vs gt.txt; never reads the input frames).
+
+Calibration (local, non-billed): reference stereo VO mean held-out ATE **3.48 m** (seq 05/07),
+scale_err 0.010 (metric works), degenerate control 90.9 m REJECTED, gate OPEN, bar 5.22 m.
+
+Live agent run (billed, Docker):
+
+| Metric | Value |
+|---|---|
+| Verdict | **VERIFIED** ✅ (first attempt) |
+| Mean held-out ATE (SE3 metric) | **3.53 m** (seq 05: 3.17, seq 07: 3.89) |
+| scale_err | **0.007** (0.7% — metric scale nailed from stereo) |
+| vs reference stereo VO (3.48 m) | **matches** |
+| Tokens / wall | ~4.03 M / ~run |
+| Algorithm | `artifacts/agent_authored_vo_kitti_v1.py` |
+
+The agent composed a correct stereo pipeline from scratch (its docstring: SGBM disparity →
+metric depth → ORB BF matching → PnP+RANSAC → inlier refinement, constant-velocity fallback) —
+no prior KITTI or stereo experience. Demo: `artifacts/blog/ep6_kitti_verified.png` (the metric
+trajectory tracks hundreds of metres of driving on both unseen sequences).
+
+**Net:** the agent's VO transfers across BOTH a new domain and a new modality, matching the
+classical reference on the first attempt. The strongest evidence yet that the lab has been
+certifying real capability, not dataset overfitting — and the verifier earned the conclusion by
+scoring on data and a sensor the agent never touched. The KITTI success was auto-recorded to the
+cross-run memory (domain `kitti`), so a future stereo/driving agent starts from this approach.
+
+---
+
+## 14. Track A — autonomous committee lineage on REAL data (the autonomy pillar, 2026-06-03)
+
+Every prior section is Track B (single-shot authoring). Track A is the OTHER half: a committee
+(PI + Geometry/SLAM + Data experts) running an autonomous *lineage* of menu-constrained
+experiments, each independently verified. Previously it ran only on a synthetic world where the
+ORB params barely moved the metric (loop machinery, not discovery). This run points it at real
+TUM fr1/xyz, where the knobs matter, with cross-run within-lineage memory (ver2 ResearchHistory).
+
+Live run (`run_vo_tum_committee`, billed): calibration gate OPEN (reference VERIFIED, degenerate
+REJECTED), then a 6-experiment lineage:
+
+| Experiment | nfeatures | ransac | ratio | held-out ATE (Sim3) |
+|---|---|---|---|---|
+| vo-real-001 | 1500 | 0.9 | 0.8 | 0.155 m |
+| vo-real-002 | 1000 | 0.7 | 0.75 | 0.141 m |
+| vo-real-003 | — | — | — | **FAILED** (MenuError: proposal mis-named the recipe; loop survived) |
+| vo-real-004 | 1200 | 1.0 | 0.0 | 0.154 m |
+| **vo-real-005** | **400** | **1.0** | **0.0** | **0.114 m** (best) |
+| vo-real-006 | 600 | 0.7 | 0.75 | 0.155 m |
+
+**Result:** the committee autonomously improved its held-out ATE **26%** (0.155 → 0.114 m),
+discovering a non-obvious optimum (fewer features + no ratio test). Deliberation was genuine —
+hundreds of words of geometric reasoning per expert (Lowe ratio test on near-planar matches,
+RANSAC angular tolerance at fr1/xyz, monocular scale drift under Sim(3)); it even flagged a
+hypothesis/params contradiction in one proposal. A mid-lineage FAILURE was recorded and skipped
+(crash-resumable). ~440k tokens. Demo: `artifacts/blog/ep7_committee.png`.
+
+**Honest bound:** it did NOT beat the hand-tuned reference default (0.089 m) — it found the best
+option within the menu's reach, which is the job of a menu-constrained panel. The point of Track A
+is the demonstration that the lab can **self-direct a verified research program** (propose → verify
+→ learn → propose), the half of "an AI research lab" that single-shot Track-B authoring never shows.
+The run was stopped after experiment 6 (it kept proposing follow-ups; the demonstration was
+complete). Known robustness gap surfaced: the PI sometimes uses the experiment id as the recipe id
+(the vo-real-003 MenuError) — handled gracefully but worth hardening.
+
+---
+
+## 15. Learned VO on GPU — agent authors ML, beats the reference, VERIFIED (2026-06-03)
+
+The last frontier: a different KIND of research — machine learning, not classical geometry.
+Can the agent author code that TRAINS a neural network on the GPU? Infra: a CUDA PyTorch image
+(`vo-gpu-torch:1`), training as a harness GPU job (gpu_lease + `--gpus all`) — wall-clock, not
+tokens. Data: KITTI (train seqs 00/02/06/08/09 with GT poses visible — supervision is legit;
+test seqs 05/07 labels isolated). Graded Sim(3) (monocular scale unobservable) + RPE.
+
+Reference learned VO (pure-torch pose CNN): held-out ATE 31.5 m — honestly ~9× worse than
+classical (monocular learned VO is drift-dominated). Bar set generously (×1.3 = 40.96 m): the
+test was whether the agent can do ML research, not beat classical.
+
+Live agent run (`run_vo_kitti_learned_implement`, billed, GPU):
+
+| Metric | Value |
+|---|---|
+| Verdict | **VERIFIED** ✅ |
+| Held-out ATE (Sim3) | **19.8 m** (seq_05 23.8, seq_07 15.8) — **beats the 31.5 m reference by 37%** |
+| RPE/frame | **0.62 m** (reference 1.54 m — less than half the drift) |
+| Tokens / GPU wall | ~2.79 M / ~1530 s (25 min of GPU jobs) |
+| Algorithm | `artifacts/agent_authored_vo_learned_v1.py` (313 lines) |
+
+The agent first checked `torch.cuda.is_available()` in the sandbox (confirming GPU before
+authoring), then innovated beyond the reference: an **8-channel input stacking both RGB frames
+with dense optical flow**, a compact CNN trained from scratch with a cosine LR schedule, images
+preloaded to RAM. The optical flow (explicit motion cues) is a genuine ML design choice and
+halved the per-frame drift. Demo: `artifacts/blog/ep8_learned.png`.
+
+**Honest bound:** at 19.8 m it is still ~5–6× worse than classical VO (3.5 m) — monocular learned
+VO drifts, and the verifier never let it hide. But the agent took a learned baseline and pushed it
+meaningfully forward with a real ML idea. The capability demonstrated — authoring AND training a
+GPU neural network, with innovation — is the point; the sub-classical number is honest. Recorded
+to cross-run memory (domain `learned-vo`).

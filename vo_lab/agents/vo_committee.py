@@ -43,7 +43,7 @@ VO_EXPERTS = [GEOMETRY, DATA]  # minimal panel; add MODELING only if 2-expert pr
 
 def vo_committee(*, model: str = DEFAULT_MODEL, run_fn: RunFn = run_agent,
                  notebook: Notebook | None = None, history: ResearchHistory | None = None,
-                 experts=None) -> Committee:
-    return Committee(vo_menu(), model=model, run_fn=run_fn, pi=PI,
+                 experts=None, menu=None) -> Committee:
+    return Committee(menu if menu is not None else vo_menu(), model=model, run_fn=run_fn, pi=PI,
                      experts=VO_EXPERTS if experts is None else experts,
                      notebook=notebook, history=history)

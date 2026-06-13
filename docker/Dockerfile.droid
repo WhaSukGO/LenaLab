@@ -1,0 +1,22 @@
+# DROID-SLAM image (learned SLAM SOTA) for the verification benchmark. De-risk PASSED: the two custom
+# CUDA extensions (lietorch + droid_backends) compile + import on the RTX 3080 (sm_86) in DROID's MATCHED
+# environment (torch 1.10 / cuda 11.3) — NOT against torch 2.4 (that fails). Build is slow (~15-20 min,
+# compiles the kernels). Weights (droid.pth) are downloaded at run time (gdown), not baked in.
+#
+# Build:  docker build -f docker/Dockerfile.droid -t vo-droid:1 .
+# Verify: docker run --rm --gpus all vo-droid:1 python -c "import torch,lietorch,droid_backends; print(torch.cuda.is_available())"
+FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-devel
+ENV TORCH_CUDA_ARCH_LIST="8.6" DEBIAN_FRONTEND=noninteractive
+# the base image's NVIDIA cuda apt repo has an expired GPG key (NO_PUBKEY) — drop it; git is in base Ubuntu
+RUN rm -f /etc/apt/sources.list.d/cuda.list /etc/apt/sources.list.d/nvidia-ml.list 2>/dev/null; \
+    apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir ninja && \
+    pip install --no-cache-dir torch-scatter -f https://data.pyg.org/whl/torch-1.10.0+cu113.html
+# DROID-SLAM + submodules (eigen/lietorch), then compile the two CUDA extensions
+RUN git clone --recurse-submodules -j4 https://github.com/princeton-vl/DROID-SLAM.git /droid && \
+    cd /droid/thirdparty/lietorch && python setup.py install && \
+    cd /droid && python setup.py install
+# runtime deps for the demo / trajectory IO
+RUN pip install --no-cache-dir evo open3d gdown matplotlib opencv-python-headless tqdm scipy
+WORKDIR /droid

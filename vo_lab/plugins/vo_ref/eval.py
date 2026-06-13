@@ -72,8 +72,16 @@ def main() -> int:
     # ver2's Menu/loop/history all assume "higher is better", so the committee path and
     # goal_metric use vo_score; calibration uses ate_rmse<=bar directly. Same bar, two views.
     vo_score = 1.0 / (1.0 + rmse)
+    # Honesty caveats embedded in the OUTPUT so they travel with the number (a low ATE here is
+    # SHAPE accuracy after a free scale fit, NOT metric accuracy — monocular scale is unobservable).
+    scale_implausible = not (0.3 <= scale <= 3.0)   # a far-from-1 fit means raw траj ~1/scale the size
     out = {"ate_rmse": rmse, "vo_score": vo_score, "n": int(m), "align": "sim3",
-           "recovered_scale": scale}
+           "recovered_scale": scale, "scale_implausible": bool(scale_implausible),
+           "caveats": [
+               "monocular Sim(3): scale-corrected -> ATE measures trajectory SHAPE, not metric scale",
+               f"recovered_scale={scale:.4f} (raw trajectory was ~{1/scale:.1f}x the GT size)"
+               if scale > 1e-6 else "degenerate scale",
+           ]}
     json.dump(out, open(eval_out / "heldout.json", "w"))
     print(f"ATE-RMSE (sim3-aligned) = {rmse:.4f} | vo_score = {vo_score:.4f} "
           f"over {m} poses; scale={scale:.4f}")

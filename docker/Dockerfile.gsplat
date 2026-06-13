@@ -1,0 +1,9 @@
+# 3D Gaussian Splatting (gsplat from nerfstudio) for optimized-sim rendering. Built from a -devel base
+# (gsplat compiles CUDA kernels with nvcc, which the runtime pytorch image lacks). Targets sm_86 (RTX 3080).
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-devel
+ENV TORCH_CUDA_ARCH_LIST="8.6" DEBIAN_FRONTEND=noninteractive MAX_JOBS=4
+RUN rm -f /etc/apt/sources.list.d/*cuda* /etc/apt/sources.list.d/*nvidia* 2>/dev/null; \
+    apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir ninja numpy opencv-python-headless matplotlib tqdm imageio
+RUN pip install --no-cache-dir gsplat            # builds CUDA ext (nvcc present); JIT kernels compile on first use
+WORKDIR /work
