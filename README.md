@@ -10,13 +10,28 @@ split the solver never saw and cannot game, against a fixed oracle.
 
 It does **not** reimplement a verifier: it imports **Touchstone** (the verification spine)
 and adds the vision domain. The harness is domain-agnostic (a domain is a plugin behind
-`{dataset, oracle/metric, held-out}`); the first and current domain is **Visual Odometry**.
-The Python package is `vo_lab`.
+`{dataset, oracle/metric, held-out}`), and it now spans **five agent-authored domains** —
+from ego-motion (VO/SLAM) to multi-camera **perception** (BEV) — proving the verification
+discipline generalizes, not just one task. The Python package is `vo_lab`.
+
+### Five domains, one discipline (agent implements · independent verifier judges · held-out data)
+
+| Domain | What the agent authored | Held-out result | Verdict |
+|---|---|---|---|
+| **RGB-D VO** | SIFT→PnP RANSAC + KLT, metric depth | **ATE 0.033 m** (SE3, unseen scene) — beats classical 0.057 | ✅ VERIFIED |
+| **Monocular VO** | optical-flow + wide-baseline keyframes | ATE 0.052 m (Sim3, unseen) | ✅ VERIFIED |
+| **KITTI stereo VO** | SGBM depth → ORB → PnP, outdoor driving | t_err 2.08% (unseen seq 05/07) | ✅ VERIFIED |
+| **Learned VO** (GPU) | ResNet pose-CNN + optical-flow input, trained from scratch | 18.5 ± 0.7 m (n=3) — beats learned ref ~1.7× | ✅ VERIFIED |
+| **BEV perception** | Lift-Splat network, 6 surround cams → top-down vehicle occupancy | **IoU 0.1075** (unseen nuScenes scenes) | ✅ VERIFIED |
+
+Plus a real **SLAM benchmark** (stereo DROID, **0.03–0.20 %** on km-scale KITTI loops) and honest
+negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Full evidence → `RESULTS.md`](RESULTS.md).**
 
 > ## 📊 **[Results & Highlights → `RESULTS.md`](RESULTS.md)**
-> Real km-scale SLAM (stereo DROID **0.06–0.20%** on KITTI loops, visualized), the variance-audited
-> sim-to-real fidelity ladder, the scene-dependent sim-faithfulness result, and a **trustworthiness audit**
-> that retracted one flagship and verified the rest. **Start there for the evidence.**
+> Real km-scale SLAM (stereo DROID **0.06–0.20%** on KITTI loops, visualized), agent-authored
+> **multi-camera BEV perception** (nuScenes, the lab's second problem class), the variance-audited
+> sim-to-real fidelity ladder, and a **trustworthiness audit** that retracted one flagship and
+> verified the rest. **Start there for the evidence.**
 
 **How it works (architecture + diagrams + where the AI is involved):** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
@@ -162,13 +177,20 @@ held-out data it **VERIFIED at ATE 0.124 m** (≤ 0.134 m bar). Full write-up + 
 
 ## Status & roadmap
 
-- **Done (increment 1):** offline spine + classical OpenCV VO + Sim(3) ATE grader +
-  reproduction-first calibration gate (local mode).
-- **Done (increment 2):** Track A expert committee + autonomous lineage.
-- **Done (increment 3):** Track B Implementer — sandboxed VO authoring; live run wrote its
-  own VO and VERIFIED at ATE 0.049 on synthetic, beating the reference baseline.
-- **Done (increment 4):** real-data provider (TUM RGB-D); calibration ran on real frames,
-  reference ATE 0.089 m, gate OPEN.
-- **Next:** live Track B on real data (`run_vo_tum_implement`); learned VO (DPVO) on the
-  RTX 3080 via a prebuilt CUDA image; multi-lab peer review via ver2's `exchange`.
-  See `claudedocs/design_ver3_harness_architecture_2026-06-02.md` §9.
+The harness spine (offline calibration gate, Track A committee, Track B implementer, anti-tamper
+grading) is built and proven, and **five agent-authored domains are VERIFIED** on real held-out
+data (table above; full evidence in [`RESULTS.md`](RESULTS.md)):
+
+- **Localization** — monocular VO, RGB-D VO (metric, 0.033 m), KITTI stereo VO (outdoor driving),
+  learned VO on GPU (n=3 variance-audited), and a real **SLAM benchmark** (stereo DROID on
+  km-scale KITTI loops, 0.03–0.20 %).
+- **Perception** — multi-camera **BEV** vehicle occupancy (nuScenes, IoU 0.1075 on unseen scenes),
+  proving the verification discipline generalizes beyond ego-motion. See
+  [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md).
+- **Discipline** — a **trustworthiness audit** that retracted one over-claimed result and
+  variance-bounded the rest; honest negatives (from-scratch loop closure, C++ IMU fusion) kept
+  on the record rather than hidden.
+
+**Open frontiers:** statistical variance on the BEV agent result (currently n=1); larger-scale BEV
+(full nuScenes / more classes); multi-lab peer review via Touchstone's `exchange`. The design
+notes live in `claudedocs/`.
