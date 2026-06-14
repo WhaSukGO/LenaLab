@@ -2,7 +2,7 @@
 
 *A verification-first computer-vision research lab: solutions count only when an **independent,
 deterministic verifier** measures them on **held-out data the solver never saw**. Built toward
-**autonomous-driving localization** — simulation-for-training and SLAM. This page is the evidence; the full
+**autonomous-driving localization + perception** — SLAM, simulation-for-training, and surround-camera BEV. This page is the evidence; the full
 chronicle is [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md).*
 
 The single thing that makes this lab different: **"it ran" is never success.** Every number below is
@@ -96,8 +96,41 @@ An LLM agent authoring vision algorithms from scratch, graded by the verifier:
 
 ---
 
+## 6. A second problem class — the lab generalizes (multi-camera BEV perception)
+
+The strongest test of a *harness* is whether it works on a task it wasn't shaped around. Every
+result above is **ego-motion** (*where did the camera go?*). So the harness was rebuilt end-to-end
+for a fundamentally different problem — **Bird's-Eye-View perception**: fuse **6 surround cameras**
+into a top-down vehicle-occupancy map (nuScenes), scored by **IoU**, a metric with nothing in
+common with trajectory error.
+
+A sandboxed agent, given only the data contract + grid spec (never *how*), authored a **338-line
+Lift-Splat network from scratch** and an independent grader **VERIFIED it at held-out
+IoU = 0.1075** (bar 0.08, on official `mini_val` scenes it never saw) — matching/beating the
+from-scratch reference. It independently reinvented the Lift-Splat architecture and added
+domain-aware engineering of its own: **horizontal-flip surround augmentation done correctly**
+(swap left/right cameras *and* update extrinsics), dropout regularization, and learned occupancy-
+threshold calibration.
+
+- Predictions on unseen scenes: `artifacts/bev/bev_agent_heldout.png` · algorithm:
+  [`artifacts/agent_authored_bev_v1.py`](artifacts/agent_authored_bev_v1.py) · full report:
+  [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md)
+- The whole verification spine transferred: harness-owned GT + IoU grader (anti-tamper, 2 passing
+  tests), held-out scene split, a from-scratch reference (IoU 0.169 pretrained / 0.104 sandbox),
+  and a calibrated oracle (degenerate all-zero → 0.000, REJECTED).
+
+*Honest scope:* nuScenes **mini** (10 scenes), vehicle-class only, from-scratch backbones (the
+sandbox has no network for pretrained weights) — so absolute IoU is below full-nuScenes LSS. The
+claim is **the harness generalizes**, demonstrated end-to-end — not a SOTA BEV number.
+
+→ *Simulation + perception for autonomous driving.* **LenaLab is now five agent-authored domains:
+monocular VO, RGB-D VO, SLAM, KITTI stereo, and BEV perception.**
+
+---
+
 ## How to navigate
 - **Full chronicle (Episodes 0–20):** [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md)
+- **BEV Track-B report (the second problem class):** [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md)
 - **Accurate-results report (per-claim verdicts):** [`claudedocs/accurate_results_report_2026-06-11.md`](claudedocs/accurate_results_report_2026-06-11.md)
 - **Sim-to-real technical note:** [`claudedocs/sim2real_fidelity_ladder_technical_note_2026-06-09.md`](claudedocs/sim2real_fidelity_ladder_technical_note_2026-06-09.md)
 - **How the harness works:** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md)

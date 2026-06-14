@@ -1,0 +1,6 @@
+# BEV perception env: torch 2.4/cu121 (from vo-gpu-torch) + nuScenes devkit + BEV training deps.
+# Standalone PyTorch (no harness Docker-in-Docker); trains a tractable camera-to-BEV model on the 3080.
+FROM vo-gpu-torch:1
+ENV DEBIAN_FRONTEND=noninteractive
+RUN pip install --no-cache-dir nuscenes-devkit pyquaternion shapely einops matplotlib opencv-python-headless tqdm
+WORKDIR /work

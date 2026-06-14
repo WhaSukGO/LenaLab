@@ -27,3 +27,6 @@ data/kitti_raw/
 roles/
 state/
 venv/
+_bev_impl_run/
+_bev_run/
+*.pt
