@@ -1142,6 +1142,43 @@ carving 15 % off an already-tiny 323-sample training set for calibration.
 
 ---
 
+## Episode 22 — Closing the loop: a diagnosis that made a prediction, and a fix that kept it
+
+Episode 21 ended on a diagnosis, not a fix: the BEV agent was high-variance because it *redesigned
+the whole pipeline* each run, and the failures were self-inflicted (a broken flip augmentation, an
+over-aggressive validation holdout on tiny data). A diagnosis worth anything makes a **falsifiable
+prediction**: *lock the fragile parts the agent keeps breaking, let it author only the network, and
+the variance should collapse.* So we tested it — a controlled change, not a re-roll.
+
+The **scaffold** seeds a locked `bev_core.py` into the agent's workspace (it can't edit it): the
+Lift-Splat geometry, the *correct* flip augmentation, the training loop, calibration — all owned by
+the harness. The agent authors **only** `model.py` — the encoder and BEV head behind a fixed
+interface. Same grader, same bar.
+
+![Scaffold collapses the agent's variance to near-reference quality](../artifacts/bev/bev_scaffold_compare.png)
+
+| condition | n=3 mean ± std | pass |
+|---|---|---|
+| fixed-recipe reference | 0.141 ± 0.002 | 3/3 |
+| agent **free-form** | 0.085 ± 0.034 | 2/3 |
+| agent **scaffold** | **0.136 ± 0.005** | **3/3** |
+
+The prediction held: variance **collapsed 7.3×** (0.034 → 0.005, approaching the reference's 0.002)
+and the mean rose to near-reference quality — 3/3 above the bar, all three runs leaving the locked
+core byte-for-byte untouched (diff-verified). The free-form failure was never the *task*; it was the
+agent's freedom over the fragile glue.
+
+> **Lesson 22 — an agent's freedom is both the power and the risk; the harness tells them apart.**
+> Free-form authoring is what makes this "implementing, not tuning" — the agent invented a real
+> Lift-Splat with correct surround-flip augmentation. But the same freedom lets it self-sabotage the
+> fragile geometry/augmentation. You don't fix that by taking the freedom away wholesale; you fix it
+> by **scoping** the freedom to where it helps (network design) and locking it where correctness is
+> load-bearing (geometry). The verification harness is what makes that diagnosis *measurable* and the
+> fix *checkable*. Build → find it's non-robust → diagnose → prescribe → **validate**: that full loop,
+> not any single IoU number, is the lab.
+
+---
+
 ## The arc, in one table
 
 | # | Trial | What the agent built | Held-out result | vs reference | Verdict |
@@ -1168,6 +1205,7 @@ carving 15 % off an already-tiny 323-sample training set for calibration.
 | 20 | **Optimized 3DGS** — can it close the long-range sim gap? | gsplat de-risk; trainer inits Gaussians from DROID dense recon, optimizes to real frames | render works (L1 0.072, recognizable scene); soft, novel views poor | gsplat de-risked; crisp render + sim-faithfulness re-test = honest future work (driving 3DGS is a research subfield) | 🟡 pipeline works / quality open |
 | 18b | **SLAM-verification** (+ sim-faithfulness, RETRACTED) | pivot to *verifying* SOTA SLAM; real env-labeled KITTI (OXTS); SystemAdapter; **DROID-SLAM** integrated; sim-faithfulness attempted | classical VO robust; C++ VO diverges on hard drives; DROID *integration* real; **sim-faithfulness INCONCLUSIVE** (straight scene, non-reproducible) | DROID integration ✅; sim-faithfulness claim retracted (overclaimed) | ⚠️ integration ✅ / result retracted |
 | 21 | **BEV perception** (a 2nd problem class) | agent authors a Lift-Splat network from scratch ×3: 6 surround cams → top-down vehicle occupancy (nuScenes), graded by IoU | **n=3: 0.085 ± 0.034**, **2/3 ≥ bar** (held-out `mini_val`, unseen) | fixed recipe stable 0.141±0.002 → variance is the agent, not the task | ⚠️ capable, not robust — harness generalizes & **caught the non-robustness** |
+| 22 | **BEV scaffold** (close the loop) | lock geometry+aug+training; agent authors ONLY the network (model.py) ×3 | **n=3: 0.136 ± 0.005, 3/3 ≥ bar** (locks held, diff-verified) | variance collapsed **7.3×** (0.034→0.005 ~ ref) + mean → ~reference | ✅ prescription validated — build→find→diagnose→fix→validate |
 
 The trajectory of the *agent* mirrors the trajectory it was estimating: confident progress, a
 hard turn at the frontier, recovery once the lab could hand its own mistake forward — and then,

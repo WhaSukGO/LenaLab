@@ -189,6 +189,39 @@ be p-hacking and is explicitly *not* done here. Archived algorithms:
 
 ---
 
+## 7b. Closing the loop: the scaffold fix (hypothesis → validated)
+
+The diagnosis made a falsifiable prediction: *if* the variance is the agent's design latitude over
+the fragile parts (geometry, augmentation), then **locking those and letting the agent author only
+the network should collapse the variance.** We built exactly that and tested it — not a re-roll, a
+controlled change.
+
+The **scaffold** (`vo_lab/plugins/vo_ref/bev_scaffold.py`, seeded into the workspace as a locked
+`bev_core.py` the agent cannot author) owns the Lift-Splat geometry, the *correct* flip augmentation
+(camera-swap + extrinsic + ego-y update), the training loop, and threshold calibration. The agent
+authors **only** `model.py` — `build_encoder()` + `build_bev_head()` behind a fixed interface. Same
+held-out grader, calibrated bar 0.082.
+
+| condition | n=3 held-out IoU | mean ± std | pass |
+|---|---|---|---|
+| fixed-recipe reference | 0.138 / 0.142 / 0.143 | 0.141 ± **0.002** | 3/3 |
+| agent **free-form** (authors everything) | 0.108 / 0.038 / 0.111 | 0.085 ± **0.034** | 2/3 |
+| agent **scaffold** (authors only the net) | 0.138 / 0.140 / 0.130 | **0.136 ± 0.005** | **3/3** |
+
+**Confirmed.** Locking the fragile parts collapsed the agent's variance **7.3×** (0.034 → 0.005,
+approaching the reference's 0.002) *and* lifted the mean to near-reference quality (0.085 → 0.136),
+with **3/3** runs clearing the bar. All three runs left the locked `bev_core.py` byte-for-byte
+unmodified (verified by diff). Figure: `artifacts/bev/bev_scaffold_compare.png`.
+
+This is the lab's full scientific cycle on one problem: **build → find it's non-robust → diagnose
+(agent latitude, not the task) → prescribe (scaffold) → validate the prescription.** The takeaway
+for agent-authored CV: an agent's *freedom* is both its power (it can invent real architectures) and
+its risk (it can self-sabotage the fragile glue). The verification harness is what lets you tell the
+difference — and the scaffold is the principled way to keep the freedom where it helps (network
+design) and remove it where it hurts (geometry/augmentation correctness).
+
+---
+
 ## 8. Honest scope (stated, not hidden)
 
 - **Small-data regime.** nuScenes **mini** = 10 scenes total. The from-scratch 0.10 / pretrained
@@ -214,9 +247,14 @@ vo_lab/plugins/vo_ref/eval_bev.py       harness-owned IoU grader (anti-tamper)
 vo_lab/plugins/vo_ref/run_bev_learned.py from-scratch Lift-Splat reference (sandbox bar)
 vo_lab/agents/bev_implementer.py        task spec + reference/degenerate authors
 vo_lab/run_bev_calibration.py           non-billed gate (sets the bar)
-vo_lab/run_bev_implement.py             live billed Track B
+vo_lab/run_bev_implement.py             live billed Track B (free-form)
+vo_lab/plugins/vo_ref/bev_scaffold.py   LOCKED scaffold core (geometry+aug+training; seeded as bev_core.py)
+vo_lab/plugins/vo_ref/bev_scaffold_model_ref.py  reference model.py for the scaffold
+vo_lab/run_bev_scaffold_calibration.py  non-billed scaffold gate
+vo_lab/run_bev_scaffold_implement.py    live billed scaffold Track B (agent authors only model.py)
+scripts/bev_scaffold_compare_fig.py     the 3-condition variance figure
 tests/test_bev_implementer.py           2 anti-tamper tests (passing)
-artifacts/bev/                          GT check, held-out predictions, reference checkpoints
+artifacts/bev/                          GT check, predictions, variance + scaffold figures
 ```
 
 ```bash
@@ -224,18 +262,22 @@ artifacts/bev/                          GT check, held-out predictions, referenc
 python scripts/prep_nuscenes_bev.py <nuscenes_root> ~/.cache/vo_lab/bev
 # non-billed: confirm the gate + derive the bar
 python -m vo_lab.run_bev_calibration
-# live (billed + Docker + GPU): the agent authors a BEV network
+# live (billed + Docker + GPU): free-form — the agent authors the whole BEV network
 ANTHROPIC_API_KEY=... python -m vo_lab.run_bev_implement 0.08
+# scaffold — geometry+aug locked, agent authors only model.py
+python -m vo_lab.run_bev_scaffold_calibration                       # non-billed gate (bar 0.082)
+ANTHROPIC_API_KEY=... python -m vo_lab.run_bev_scaffold_implement 0.082
 ```
 
 **Verdict:** the verification-first harness transfers cleanly from ego-motion to multi-view
 perception. Every part of the discipline — held-out data, harness-owned GT + metric, anti-tamper
-grading, a calibrated oracle — was rebuilt for an unrelated task and works. The agent-authoring
-result is honest and two-sided: a sandboxed agent **can** author real BEV perception (2 of 3 runs
-cleared the held-out bar), but **not reliably** (n=3 IoU 0.085 ± 0.034; one run failed), and the
-diagnostic shows the variance is the agent's redesign latitude, not the task (a fixed recipe is
-stable at 0.141 ± 0.002). The most valuable thing here is that **the harness caught that** — a
-single run would have over-claimed a clean win. LenaLab spans five domains (monocular VO, RGB-D VO,
-SLAM, KITTI stereo, BEV perception); the thesis holds across all five, and on BEV it did its
-hardest job: it kept an honest result honest. "It ran" — and even "it passed once" — is never the
-same as "it's robust."
+grading, a calibrated oracle — was rebuilt for an unrelated task and works. And on BEV the lab ran
+its full scientific cycle: a sandboxed agent **can** author real BEV perception but **not reliably**
+free-form (n=3 IoU 0.085 ± 0.034, 2/3 — the harness caught the non-robustness a single run would
+have hidden); the diagnostic pinned the variance on the agent's design latitude, not the task (fixed
+recipe 0.141 ± 0.002); and the **scaffold validated the fix** — locking the fragile parts collapsed
+the variance 7.3× to 0.136 ± 0.005, 3/3. **build → find it's non-robust → diagnose → prescribe →
+validate.** LenaLab spans five domains (monocular VO, RGB-D VO, SLAM, KITTI stereo, BEV); the thesis
+holds across all five, and on BEV it did its hardest job — not just measuring a result, but keeping
+an honest one honest and then *improving* it. "It ran," and even "it passed once," is never the same
+as "it's robust" — but you can engineer your way from one to the other when the harness tells you how.

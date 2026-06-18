@@ -81,3 +81,92 @@ def bev_degenerate_author():
         (Path(code_dir) / "main.py").write_text(src)
         return Usage()
     return author
+
+
+# --- SCAFFOLD variant: lock the fragile parts, agent authors ONLY the network ---------------
+# Tests the n=3 finding's prescription: the variance was the agent's design latitude over the
+# geometry/augmentation, not network capacity. Lock geometry + correct flip aug + training in a
+# seeded bev_core.py; the agent authors only model.py (build_encoder + build_bev_head).
+_BEV_SCAFFOLD_CORE = (Path(VO_CODE_DIR) / "bev_scaffold.py").read_text()         # the LOCKED core
+_BEV_SCAFFOLD_MODEL_REF = (Path(VO_CODE_DIR) / "bev_scaffold_model_ref.py").read_text()
+
+BEV_SCAFFOLD_DESCRIPTION = (
+    "Author the NEURAL NETWORK for a multi-camera BEV vehicle-occupancy model. The hard parts are "
+    "ALREADY DONE and LOCKED in `bev_core.py` (in your working dir — DO NOT edit or recreate it): the "
+    "Lift-Splat geometry (frustum -> ego -> voxel-pool using the real intrinsics+extrinsics), the "
+    "correct surround-camera flip augmentation, the training loop, threshold calibration, and "
+    "inference/output. You write ONLY `model.py`, which must expose exactly two factory functions:\n"
+    "  build_encoder() -> nn.Module: forward(imgs[B*6,3,128,352]) -> (depth_logits[B*6,D,h,w], "
+    "context[B*6,C,h,w]). D is fixed — import it: `from bev_core import DEPTH_BINS`. You choose C "
+    "(context channels) and the downsample h,w (e.g. ResNet to /16 gives 8x22). No pretrained weights "
+    "(no network) — build from scratch (torchvision architectures with weights=None are fine).\n"
+    "  build_bev_head() -> nn.Module: forward(bev[B,C,X,Y]) -> occupancy_logits[B,200,200]. Must "
+    "consume the same C your encoder emits.\n"
+    "bev_core.py wires them: enc -> lift_splat(depth_logits, context, K, cam2ego) -> head. You are "
+    "graded by held-out IoU on nuScenes scenes you never see. Design the network (backbone, depth/"
+    "context heads, BEV decoder, capacity) for the best held-out IoU. Do NOT touch geometry, "
+    "augmentation, training, or the grader — only model.py. torch (CUDA), torchvision, numpy available.")
+
+
+def bev_scaffold_seed() -> dict:
+    """Files seeded (LOCKED) into the agent's workspace before authoring."""
+    return {"bev_core.py": _BEV_SCAFFOLD_CORE}
+
+
+def bev_impl_task_scaffold(threshold: float = 0.10, *, train_max=None, test_max=None) -> ImplementationTask:
+    """SCAFFOLD Track-B BEV: geometry+augmentation+training LOCKED (seeded bev_core.py); the agent
+    authors only model.py (the network). entry runs the locked core. Same held-out IoU grader."""
+    from ..plugins.bev_nuscenes import bev_datasets
+
+    return ImplementationTask(
+        description=BEV_SCAFFOLD_DESCRIPTION,
+        framework=_GPU_FW,
+        entry_command='python3 "$LAB_CODE/bev_core.py"',     # runs the LOCKED core (imports model.py)
+        eval_command='python3 "$LAB_CODE/eval.py"',
+        eval_code=_BEV_EVAL_CODE,
+        metric="miou", op=">=", threshold=threshold,
+        datasets=bev_datasets(),
+        entry_filename="model.py",                            # the agent's ONLY deliverable
+    )
+
+
+def seeded(inner_author, seed: dict):
+    """Wrap an author so the LOCKED seed files are written into code_dir before authoring."""
+    def author(task, code_dir: Path, rec) -> Usage:
+        for name, src in seed.items():
+            (Path(code_dir) / name).write_text(src)
+        return inner_author(task, code_dir, rec)
+    return author
+
+
+def bev_scaffold_reference_author():
+    """Writes the reference model.py into the scaffold (the known-good network; for calibration)."""
+    def author(task, code_dir: Path, rec) -> Usage:
+        (Path(code_dir) / "bev_core.py").write_text(_BEV_SCAFFOLD_CORE)
+        (Path(code_dir) / "model.py").write_text(_BEV_SCAFFOLD_MODEL_REF)
+        return Usage()
+    return author
+
+
+def bev_scaffold_degenerate_author():
+    """A trivial constant network (predicts from a learned bias only) — the scaffold negative control."""
+    src = ("import torch.nn as nn\n"
+           "from bev_core import DEPTH_BINS\n"
+           "class E(nn.Module):\n"
+           "    def __init__(s):\n"
+           "        super().__init__(); s.c=nn.Conv2d(3,DEPTH_BINS+8,1)\n"
+           "    def forward(s,x):\n"
+           "        import torch.nn.functional as F\n"
+           "        y=F.avg_pool2d(s.c(x),16); return y[:,:DEPTH_BINS], y[:,DEPTH_BINS:]\n"
+           "class H(nn.Module):\n"
+           "    def __init__(s):\n"
+           "        super().__init__(); s.c=nn.Conv2d(8,1,1)\n"
+           "    def forward(s,b):\n"
+           "        return s.c(b).squeeze(1)\n"
+           "def build_encoder(): return E()\n"
+           "def build_bev_head(): return H()\n")
+    def author(task, code_dir: Path, rec) -> Usage:
+        (Path(code_dir) / "bev_core.py").write_text(_BEV_SCAFFOLD_CORE)
+        (Path(code_dir) / "model.py").write_text(src)
+        return Usage()
+    return author
