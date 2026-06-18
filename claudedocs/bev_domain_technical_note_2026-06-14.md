@@ -35,13 +35,15 @@ a stable bar, not a lucky run. On busy held-out samples IoU reaches ~0.22
 - **Small-data regime.** nuScenes **mini** = 10 scenes total. 0.17 IoU is well below full-nuScenes
   LSS (~0.32 over 28k samples); the gap is data quantity, not a harness flaw. The point here is
   *the harness generalizes*, demonstrated end-to-end on a held-out split — not a SOTA BEV number.
-- **Agent-authored result: VERIFIED** (2026-06-15). A sandboxed Claude agent authored a 338-line
-  Lift-Splat network from scratch and was graded at **held-out IoU 0.1075** (bar 0.08, from the
-  from-scratch reference 0.1042) — matching/slightly beating the reference on unseen scenes. Full
-  Track-B build + verdict: [`bev_track_b_report_2026-06-15.md`](bev_track_b_report_2026-06-15.md);
-  algorithm `artifacts/agent_authored_bev_v1.py`. (Note: `bev_lss.py`'s 0.169 uses a *pretrained*
-  backbone; the sandbox has no network, so the agent + its reference both train from scratch, a
-  lower but honest bar.)
+- **Agent-authored result: capable but NOT robust** (n=3, 2026-06-15). A sandboxed Claude agent
+  authored a Lift-Splat network from scratch three times → held-out IoU **0.1075 / 0.0376 / 0.1107**
+  (**2/3 ≥ bar 0.08; mean 0.085 ± 0.034**). Diagnostic: a fixed-architecture reference at 3 seeds is
+  stable (**0.141 ± 0.002**), so the variance is the agent's redesign latitude, **not** the task; the
+  failing run self-sabotaged (15 %-holdout on tiny data + simpler flip aug). A single run would have
+  over-claimed "VERIFIED 0.1075" — the harness caught the non-robustness. Robust-result paths (more
+  data / fixed-architecture scaffold) are future work, not re-rolls. Full build + diagnosis:
+  [`bev_track_b_report_2026-06-15.md`](bev_track_b_report_2026-06-15.md); figure
+  `artifacts/bev/bev_variance_n3.png`; algorithm `artifacts/agent_authored_bev_v1.py` (run 1).
 - Vehicle class only (the standard LSS sub-task); other classes are future work.
 
 ## Artifacts

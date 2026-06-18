@@ -1110,26 +1110,35 @@ tests), and a from-scratch Lift-Splat reference that sets the bar. **Calibration
 IoU **0.104** (from-scratch — the sandbox has no network for pretrained weights), all-zero degenerate
 **0.000 → REJECTED**, bar **0.08**.
 
-Then the live run. A sandboxed agent, given only the data contract + grid spec, authored a **338-line
-Lift-Splat network from scratch** and was **VERIFIED at held-out IoU 0.1075** (matching/beating the
-reference on scenes it never saw, ~1.03 M tokens, ~478 s GPU training). It reinvented Lift-Splat from
-the description alone — and added engineering the reference didn't have:
+Then the live run — and here the discipline earned its keep. A single run would have reported a clean
+"**VERIFIED at IoU 0.1075**," and we'd have shipped it. Instead we ran the agent **three times**:
 
-![Agent BEV predictions on held-out nuScenes scenes: green = correct, red = missed, blue = false positive](../artifacts/bev/bev_agent_heldout.png)
+| run | held-out IoU | verdict |
+|---|---|---|
+| 1 | 0.1075 | ✅ |
+| 2 | **0.0376** | ❌ |
+| 3 | 0.1107 | ✅ |
 
-The standout move: **horizontal-flip surround augmentation done *correctly*** — flipping a 6-camera rig
-isn't mirroring pixels, it's *swapping the left/right cameras and updating their extrinsics*. The agent
-worked that out unprompted, alongside dropout regularization and learned occupancy-threshold calibration.
-The predictions are honest — strong on some held-out scenes, misses on hard ones (worst sample IoU 0.00).
+**2 of 3 passed; mean 0.085 ± 0.034.** The agent *can* author real BEV perception — but not reliably.
+And a cheap diagnostic shows *why*: a **fixed-architecture** reference trained at three seeds is
+rock-stable (0.141 ± 0.002), so the variance isn't the task — it's the agent **redesigning the
+algorithm every run**. Good designs (runs 1, 3) implemented flip augmentation *correctly* (swap the
+left/right cameras *and* update extrinsics — a real BEV insight); the failing run self-sabotaged by
+carving 15 % off an already-tiny 323-sample training set for calibration.
 
-> **Lesson 21 — the harness is the product, not the domain.** The result that matters here isn't 0.1075
-> IoU (small-data, vehicle-only, from-scratch — well below full-nuScenes LSS, and stated as such). It's
-> that *every part of the verification discipline transferred to an unrelated task without modification*:
-> held-out data, harness-owned GT, an independent metric, anti-tamper grading, a calibrated oracle. A lab
-> that only works on the problem it was built for is a benchmark. A lab that works on a problem it wasn't
-> is a **method**. Five agent-authored domains now — monocular VO, RGB-D VO, SLAM, KITTI stereo, and BEV
-> perception — and the thesis holds across all five: the agent implements, the verifier judges, and "it
-> ran" is never "it's correct." (Full report: `claudedocs/bev_track_b_report_2026-06-15.md`.)
+![BEV n=3 variance: fixed recipe is stable, the agent's design latitude is the variance source](../artifacts/bev/bev_variance_n3.png)
+
+> **Lesson 21 — the harness is the product, and its hardest job is keeping *you* honest.** The
+> headline isn't an IoU number — it's that the lab **caught its own near-miss**: a single run would
+> have over-claimed a clean win on a brand-new problem class. Every part of the verification discipline
+> transferred to an unrelated task (held-out data, harness-owned GT, an independent metric, anti-tamper
+> grading, a calibrated oracle), *and* it surfaced that agent BEV authoring is capable-but-not-robust at
+> this data scale — variance from the agent's design freedom, not the task. The robust-result paths
+> (more data, or a fixed-architecture scaffold like the SLAM track's) are honest future work; re-rolling
+> live runs until one passes is p-hacking, and we don't. Five agent-authored domains now — monocular VO,
+> RGB-D VO, SLAM, KITTI stereo, and BEV — and on the newest one the thesis did its hardest job: the agent
+> implements, the verifier judges, and "it passed once" is never the same as "it's robust." (Full report
+> + failure diagnosis: `claudedocs/bev_track_b_report_2026-06-15.md`.)
 
 ---
 
@@ -1158,7 +1167,7 @@ The predictions are honest — strong on some held-out scenes, misses on hard on
 | 19 | **Real SLAM benchmark** — stereo DROID on km-scale loops | KITTI odometry seq_05/07/09 (0.7–2.2 km, loops); implement stereo DROID (metric scale) vs monocular | stereo **0.39 / 3.43 / 0.60 m (0.03–0.20%)** vs monocular 24 / 93 / 55 m | SOTA learned SLAM working on real km-scale looping driving; scale-drift fixed by stereo | ✅ realistic + working |
 | 20 | **Optimized 3DGS** — can it close the long-range sim gap? | gsplat de-risk; trainer inits Gaussians from DROID dense recon, optimizes to real frames | render works (L1 0.072, recognizable scene); soft, novel views poor | gsplat de-risked; crisp render + sim-faithfulness re-test = honest future work (driving 3DGS is a research subfield) | 🟡 pipeline works / quality open |
 | 18b | **SLAM-verification** (+ sim-faithfulness, RETRACTED) | pivot to *verifying* SOTA SLAM; real env-labeled KITTI (OXTS); SystemAdapter; **DROID-SLAM** integrated; sim-faithfulness attempted | classical VO robust; C++ VO diverges on hard drives; DROID *integration* real; **sim-faithfulness INCONCLUSIVE** (straight scene, non-reproducible) | DROID integration ✅; sim-faithfulness claim retracted (overclaimed) | ⚠️ integration ✅ / result retracted |
-| 21 | **BEV perception** (a 2nd problem class) | agent authors a Lift-Splat network from scratch: 6 surround cams → top-down vehicle occupancy (nuScenes), graded by IoU | **0.1075 IoU** (held-out `mini_val`, unseen) | matches/beats from-scratch ref 0.104; degenerate 0.000 | ✅ VERIFIED — harness generalizes beyond ego-motion |
+| 21 | **BEV perception** (a 2nd problem class) | agent authors a Lift-Splat network from scratch ×3: 6 surround cams → top-down vehicle occupancy (nuScenes), graded by IoU | **n=3: 0.085 ± 0.034**, **2/3 ≥ bar** (held-out `mini_val`, unseen) | fixed recipe stable 0.141±0.002 → variance is the agent, not the task | ⚠️ capable, not robust — harness generalizes & **caught the non-robustness** |
 
 The trajectory of the *agent* mirrors the trajectory it was estimating: confident progress, a
 hard turn at the frontier, recovery once the lab could hand its own mistake forward — and then,

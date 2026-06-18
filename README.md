@@ -22,7 +22,7 @@ discipline generalizes, not just one task. The Python package is `vo_lab`.
 | **Monocular VO** | optical-flow + wide-baseline keyframes | ATE 0.052 m (Sim3, unseen) | ✅ VERIFIED |
 | **KITTI stereo VO** | SGBM depth → ORB → PnP, outdoor driving | t_err 2.08% (unseen seq 05/07) | ✅ VERIFIED |
 | **Learned VO** (GPU) | ResNet pose-CNN + optical-flow input, trained from scratch | 18.5 ± 0.7 m (n=3) — beats learned ref ~1.7× | ✅ VERIFIED |
-| **BEV perception** | Lift-Splat network, 6 surround cams → top-down vehicle occupancy | **IoU 0.1075** (unseen nuScenes scenes) | ✅ VERIFIED |
+| **BEV perception** | Lift-Splat network, 6 surround cams → top-down vehicle occupancy | **2/3 runs ≥ bar** (IoU 0.085 ± 0.034, unseen nuScenes) | ⚠️ capable, not robust (honest n=3) |
 
 Plus a real **SLAM benchmark** (stereo DROID, **0.03–0.20 %** on km-scale KITTI loops) and honest
 negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Full evidence → `RESULTS.md`](RESULTS.md).**

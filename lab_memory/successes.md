@@ -47,3 +47,6 @@
 - `2026-06-14T15:51:16` **[bev]** `bev-impl-001` — VERIFIED at **0.107529** (miou >= 0.08) — implement a GPU-trained surround-camera BEV network
   - approach: Multi-camera Bird's-Eye-View vehicle occupancy — Lift-Splat-Shoot.  Improvements over v1:   * Horizontal-flip surround-camera augmentation (correct camera swap + extrinsic update)   * Dropout2d in BEV head for regularisation   * Threshold calibration via training-set IoU sweep after training   * 60 epochs with OneCycleLR
   - artifact: `_bev_impl_run/workspaces/bev-impl-001/code/main.py`
+- `2026-06-14T22:04:46` **[bev]** `bev-impl-001` — VERIFIED at **0.110703** (miou >= 0.08) — implement a GPU-trained surround-camera BEV network
+  - approach: Multi-camera Bird's-Eye-View vehicle occupancy — Lift-Splat-Shoot. Improvements over prior best (0.107529):   * Focal loss + Dice loss for extreme class imbalance   * Larger BEV head with residual blocks   * Stronger augmentation (color jitter + h-flip with correct extrinsic update)   * Threshold calibration on training set   * 70 epochs with OneCycleLR + mixed precision
+  - artifact: `_bev_impl_run3/workspaces/bev-impl-001/code/main.py`

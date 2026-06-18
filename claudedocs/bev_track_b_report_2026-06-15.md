@@ -128,41 +128,64 @@ track). **Calibration gate: OPEN** (reference 0.104 ≫ bar 0.08 ≫ degenerate 
 
 ---
 
-## 7. The live agent run (the thesis result) — **VERIFIED**
+## 7. The live agent runs (n=3) — capability, but **not robust**
 
 A sandboxed Claude agent (`claude-sonnet-4-6`), given only the data contract and the grid spec,
-authored a **338-line Lift-Splat-Shoot network from scratch** and cleared the held-out bar:
+authored a Lift-Splat network from scratch — three independent times. The honest picture:
 
-| | |
-|---|---|
-| **held-out mean IoU** | **0.1075** (bar 0.08) → **VERIFIED / PASS** |
-| global (pooled) IoU | 0.1127 |
-| samples graded | 81 / 81 (0 missing) |
-| tokens | 1.03 M |
-| GPU train wall-clock | ~478 s (a harness job — not tokens) |
+| run | held-out mean IoU | verdict |
+|---|---|---|
+| run 1 | 0.1075 | ✅ VERIFIED |
+| run 2 | **0.0376** | ❌ **REJECTED** |
+| run 3 | 0.1107 | ✅ VERIFIED |
+| **n=3** | **0.085 ± 0.034** (range 0.038–0.111) | **2 / 3 cleared the 0.08 bar** |
 
-It **matched/slightly beat the from-scratch reference** (0.1075 vs 0.1042) on scenes it never
-saw — capability, not recall. The agent independently arrived at the Lift-Splat architecture and,
-over iterations, added genuinely domain-aware engineering the reference did not have:
+A *single* run would have reported a clean "VERIFIED at 0.1075" — and it would have been partly
+luck. Running it three times reveals the truth: **the agent can author a passing BEV network, but
+not reliably.** One run in three (run 2) landed at less than half the IoU and *failed*. This is
+exactly what variance testing exists to catch, and the lab's norm is to report it, not bury it.
 
-- **horizontal-flip surround augmentation done correctly** — flipping the scene requires *swapping
-  the left/right cameras AND updating their extrinsics*, not just mirroring pixels (a BEV-specific
-  insight),
-- **Dropout2d** in the BEV head (regularization for the 323-sample regime),
-- **threshold calibration** — it sweeps the occupancy threshold on training-set IoU after training
-  instead of hardcoding one (optimizing its own decision boundary on data it's allowed to see),
-- AMP mixed-precision training, 60 epochs / OneCycleLR, a finer /8 feature stride.
+### Is the variance the *task* or the *agent*? (the diagnostic)
 
-The held-out predictions (`artifacts/bev/bev_agent_heldout.png`) tell the honest story: strong
-overlap on some unseen scenes, misses on hard ones (worst sample IoU 0.00) — a real from-scratch
-BEV model in a small-data regime, not a polished SOTA number. Archived algorithm:
-`artifacts/agent_authored_bev_v1.py`.
+Decisive cheap experiment: train a **fixed-architecture** from-scratch reference at three seeds and
+measure its spread. If the task were inherently noisy at this data scale, the reference would swing
+too. It doesn't:
 
-**This is the thesis working for a brand-new problem class:** told only *what* to build and *how
-it would be judged* — never *how* — a sandboxed agent authored a real multi-view perception
-network and an independent grader confirmed it generalizes to held-out scenes. The verification
-spine that judged it (held-out GT, IoU metric, anti-tamper grader, calibrated oracle) was rebuilt
-from scratch for a task with nothing in common with the lab's prior ego-motion work, and it held.
+| | n=3 held-out IoU | mean | **std** |
+|---|---|---|---|
+| **fixed-recipe reference** (seeds 0/1/2) | 0.138 / 0.142 / 0.143 | 0.141 | **0.002** |
+| **agent** (re-authors each run) | 0.108 / 0.038 / 0.111 | 0.085 | **0.034** |
+
+The fixed recipe is **rock-stable (std 0.002)** and sits *above* the agent's best run. So the task
+is stably learnable and the regime is **not** the problem — the agent's variance (≈17× the
+reference's) comes from it **redesigning the algorithm every run**. Figure:
+`artifacts/bev/bev_variance_n3.png`. (The diagnostic uses best-epoch val-IoU, so its *absolute*
+0.141 is a touch optimistic vs the final-epoch sandbox reference 0.104 that set the bar; the point
+is the **variance**, which is unambiguous.)
+
+The failure is concrete, not mysterious. Comparing the authored code:
+- **run 2 (failed)** carved out **15 % of the already-tiny 323-sample training set** for threshold
+  calibration (≈275 left to train on) and used a simpler flip augmentation (`flip_K` adjusts only
+  `cx`) — if its flipped BEV *target* wasn't ego-y-flipped to match the flipped cameras, the
+  augmentation injects label noise. Either choice plausibly costs the thin margin.
+- **runs 1 & 3 (passed)** calibrated on the full training set and (run 3) implemented flip
+  augmentation *correctly* (explicit ego-frame + extrinsic + intrinsic update).
+
+So the agent's freedom to redesign — the very thing that makes Track B "authoring, not tuning" — is
+also the variance source: good designs clear the bar, self-sabotaging ones (over-aggressive
+holdout, subtly-wrong augmentation) don't. The best run's predictions
+(`artifacts/bev/bev_agent_heldout.png`, before/after `bev_before_after.png`, sweep
+`bev_sweep_scene0103.gif`) are real multi-view perception; the *reliability* is the open question.
+
+**What this does and doesn't show.** It **does** show the harness generalizes to a brand-new problem
+class and grades it reliably (it caught the non-robustness a single run would have hidden), and that
+a capable agent *can* author real BEV perception (2/3). It does **not** show the agent reliably
+matches a fixed reference — it doesn't, yet, at this data scale. The legitimate paths to a *robust*
+agent result are (a) **more data** (a larger nuScenes subset stabilizes both reference and agent) or
+(b) a **scaffold** that fixes the architecture and has the agent author only the uncertain piece —
+the same "isolate the skill" move the SLAM track used. Re-rolling live runs until one passes would
+be p-hacking and is explicitly *not* done here. Archived algorithms:
+`artifacts/agent_authored_bev_v1.py` (run 1).
 
 ---
 
@@ -207,8 +230,12 @@ ANTHROPIC_API_KEY=... python -m vo_lab.run_bev_implement 0.08
 
 **Verdict:** the verification-first harness transfers cleanly from ego-motion to multi-view
 perception. Every part of the discipline — held-out data, harness-owned GT + metric, anti-tamper
-grading, a calibrated oracle — was rebuilt for an unrelated task and works, and a sandboxed agent
-authored a BEV network that an independent grader **VERIFIED at 0.1075 IoU** on held-out scenes.
-LenaLab is now a **five-domain** lab (monocular VO, RGB-D VO, SLAM, KITTI stereo, **BEV
-perception**), and the thesis holds across all five: the agent implements, the verifier judges,
-and "it ran" is never the same as "it's correct."
+grading, a calibrated oracle — was rebuilt for an unrelated task and works. The agent-authoring
+result is honest and two-sided: a sandboxed agent **can** author real BEV perception (2 of 3 runs
+cleared the held-out bar), but **not reliably** (n=3 IoU 0.085 ± 0.034; one run failed), and the
+diagnostic shows the variance is the agent's redesign latitude, not the task (a fixed recipe is
+stable at 0.141 ± 0.002). The most valuable thing here is that **the harness caught that** — a
+single run would have over-claimed a clean win. LenaLab spans five domains (monocular VO, RGB-D VO,
+SLAM, KITTI stereo, BEV perception); the thesis holds across all five, and on BEV it did its
+hardest job: it kept an honest result honest. "It ran" — and even "it passed once" — is never the
+same as "it's robust."

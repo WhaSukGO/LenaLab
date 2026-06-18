@@ -104,27 +104,39 @@ for a fundamentally different problem — **Bird's-Eye-View perception**: fuse *
 into a top-down vehicle-occupancy map (nuScenes), scored by **IoU**, a metric with nothing in
 common with trajectory error.
 
-A sandboxed agent, given only the data contract + grid spec (never *how*), authored a **338-line
-Lift-Splat network from scratch** and an independent grader **VERIFIED it at held-out
-IoU = 0.1075** (bar 0.08, on official `mini_val` scenes it never saw) — matching/beating the
-from-scratch reference. It independently reinvented the Lift-Splat architecture and added
-domain-aware engineering of its own: **horizontal-flip surround augmentation done correctly**
-(swap left/right cameras *and* update extrinsics), dropout regularization, and learned occupancy-
-threshold calibration.
+A sandboxed agent, given only the data contract + grid spec (never *how*), authored a Lift-Splat
+network from scratch — and we ran it **three times**. The honest result is two-sided and, we think,
+more valuable than a single lucky pass:
 
-- Predictions on unseen scenes: `artifacts/bev/bev_agent_heldout.png` · algorithm:
-  [`artifacts/agent_authored_bev_v1.py`](artifacts/agent_authored_bev_v1.py) · full report:
-  [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md)
+| | n=3 held-out IoU | mean ± std | vs bar 0.08 |
+|---|---|---|---|
+| **agent** (re-authors each run) | 0.108 / 0.038 / 0.111 | **0.085 ± 0.034** | **2 / 3 VERIFIED** |
+| **fixed-recipe reference** (3 seeds) | 0.138 / 0.142 / 0.143 | 0.141 ± 0.002 | always passes |
+
+The agent **can** author real multi-view BEV perception — two of three runs cleared the held-out
+bar with genuine Lift-Splat networks (one even implemented *correct* flip augmentation: swap
+left/right cameras **and** update extrinsics). But it's **not robust**: one run in three
+self-sabotaged (over-aggressive validation holdout on tiny data) and *failed*. The diagnostic
+settles why — a **fixed-architecture reference is rock-stable (std 0.002)**, so the variance is the
+agent's redesign-every-run latitude, **not** the task (`artifacts/bev/bev_variance_n3.png`).
+
+**The point: a single run would have over-claimed "VERIFIED 0.1075" — the harness caught that it
+wasn't reproducible.** That's the discipline doing its hardest job on a brand-new problem class.
+
+- Variance figure: `artifacts/bev/bev_variance_n3.png` · before/after (reference vs agent):
+  `artifacts/bev/bev_before_after.png` · held-out sweep: `artifacts/bev/bev_sweep_scene0103.gif`
+- Full report (with the failure diagnosis): [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md) ·
+  algorithm: [`artifacts/agent_authored_bev_v1.py`](artifacts/agent_authored_bev_v1.py)
 - The whole verification spine transferred: harness-owned GT + IoU grader (anti-tamper, 2 passing
-  tests), held-out scene split, a from-scratch reference (IoU 0.169 pretrained / 0.104 sandbox),
-  and a calibrated oracle (degenerate all-zero → 0.000, REJECTED).
+  tests), held-out scene split, calibrated oracle (degenerate all-zero → 0.000, REJECTED).
 
-*Honest scope:* nuScenes **mini** (10 scenes), vehicle-class only, from-scratch backbones (the
-sandbox has no network for pretrained weights) — so absolute IoU is below full-nuScenes LSS. The
-claim is **the harness generalizes**, demonstrated end-to-end — not a SOTA BEV number.
+*Honest scope:* nuScenes **mini** (10 scenes), vehicle-class only, from-scratch backbones. The
+robust-result paths (more data, or a fixed-architecture scaffold) are documented future work — **not**
+re-rolling runs until one passes. The claim is **the harness generalizes and keeps results honest**,
+demonstrated end-to-end — not a SOTA BEV number.
 
-→ *Simulation + perception for autonomous driving.* **LenaLab is now five agent-authored domains:
-monocular VO, RGB-D VO, SLAM, KITTI stereo, and BEV perception.**
+→ *Perception for autonomous driving.* **LenaLab is now five domains: monocular VO, RGB-D VO, SLAM,
+KITTI stereo, and BEV — with BEV's agent reliability honestly characterized, not overstated.**
 
 ---
 

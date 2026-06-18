@@ -45,7 +45,9 @@ class LiftSplat(nn.Module):
         self.xb, self.yb, self.res = xb, yb, res
         self.dbins = torch.arange(*dbound)
         self.D = len(self.dbins)
-        bb = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
+        _pre = os.environ.get("SCRATCH", "0") != "1"   # SCRATCH=1 -> from-scratch (no pretrained download)
+        bb = torchvision.models.resnet18(
+            weights=torchvision.models.ResNet18_Weights.DEFAULT if _pre else None)
         self.backbone = nn.Sequential(bb.conv1, bb.bn1, bb.relu, bb.maxpool,
                                       bb.layer1, bb.layer2, bb.layer3)   # -> /16, 256 ch
         self.depthnet = nn.Conv2d(256, self.D + C, 1)
