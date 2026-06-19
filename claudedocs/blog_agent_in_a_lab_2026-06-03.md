@@ -1,7 +1,7 @@
 # An Agent in a Lab: A Chronicle of LenaLab
 
-*How a verification-first harness let an AI agent author computer-vision algorithms from
-scratch — and what it got right, wrong, and never quite figured out.*
+*How an AI agent researched, built, and trained computer-vision algorithms from scratch —
+and what it got right, wrong, and never quite figured out.*
 
 — Written 2026-06-03, covering work done 2026-06-02.
 
@@ -9,21 +9,23 @@ scratch — and what it got right, wrong, and never quite figured out.*
 
 ## The premise
 
-LenaLab is built on one idea borrowed from Anthropic's **harness-engineering** work: never
-let the agent that *produces* a result be the one that *decides* whether it's any good.
+LenaLab is one idea made concrete: an AI agent that does real computer-vision research. It
+**analyzes** a problem, **researches** an approach, **implements and trains** an algorithm,
+and **confirms it generalizes** — the same loop a human researcher runs.
 
-So the lab has two halves that don't trust each other. A **solver** — a Claude agent — writes
-a visual-odometry algorithm from scratch in a sealed sandbox. A **verifier** — pure,
-deterministic Python with no model anywhere in it — runs that code on a *held-out* trajectory
-the agent never saw and measures the error with closed-form geometry. "It ran" is never
-success. The only thing that earns a ✅ is a held-out number under a bar that was fixed
-*before* the agent started.
+The agent — a Claude agent — writes a visual-odometry algorithm from scratch in a sealed
+sandbox: it reasons about the geometry, picks a design, codes it, and iterates. Quietly behind
+it, held-out measurement keeps the scoreboard honest: a deterministic, model-free evaluator
+runs the agent's code on a *trajectory it never saw* and measures the error with closed-form
+geometry, against a bar fixed *before* the agent started. The agent supplies the research and
+engineering; held-out validation is just the credibility backbone that lets every number below
+mean what it says.
 
-![The solver ⟂ verifier split](../artifacts/blog/ep0_pipeline.png)
+![The agent authors; held-out measurement keeps the score honest](../artifacts/blog/ep0_pipeline.png)
 
 Everything below is what happened when we actually ran it. Each episode follows the same
-shape: **what got built → how it improved on the last one → what broke → the lesson.** The
-numbers are pulled straight from the run registries, not rounded for flattery.
+shape: **what the agent built → how it improved on the last one → what broke → the lesson.**
+The numbers are pulled straight from the run registries, not rounded for flattery.
 
 ---
 
@@ -31,17 +33,17 @@ numbers are pulled straight from the run registries, not rounded for flattery.
 
 *Commit `74377be` — "verification-first computer-vision research lab"*
 
-Before the agent could do anything, the lab itself had to exist. The key decision was **not to
-build a verifier** — the whole verification spine (the state-machine loop, the held-out
-evaluator, the crash-resumable registry, the token+experiment budget, the single-GPU lease,
-the Docker job-runner) was *imported* from a prior project, "Touchstone." LenaLab added only
-the vision domain: the dataset provider, a classical reference algorithm, the grader, and the
-expert prompts.
+Before the agent could do its research, the lab itself had to exist. The key decision was **not
+to rebuild the plumbing** — the whole spine (the state-machine loop, the held-out evaluator,
+the crash-resumable registry, the token+experiment budget, the single-GPU lease, the Docker
+job-runner) was *imported* from a prior project, "Touchstone." LenaLab added only the vision
+domain: the dataset provider, a classical reference algorithm, the grader, and the expert
+prompts the agent works from.
 
-The discipline that made the rest possible was the **calibration gate**: before the agent is
-allowed a single autonomous turn, the verifier must VERIFY a known-good run *and* REJECT a
-deliberately broken one. If it can't tell those apart, it's a rubber stamp, and the lab refuses
-to open.
+The discipline that made the rest credible was the **calibration gate**: before the agent
+starts its work, the evaluator must VERIFY a known-good run *and* REJECT a deliberately broken
+one. If it can't tell those apart, its numbers mean nothing, so the lab refuses to open until
+it can.
 
 **What could be better, even here:** the gate proves the grader isn't *blind*, but it can't
 prove the held-out split isn't *correlated* with the training split. That limitation never
@@ -109,7 +111,7 @@ run, then the X–Y panel shows it failing to capture the lateral back-and-forth
 
 The live run printed `RESULT: FAILED` — and it was neither a hang nor a bad algorithm. The agent
 kept *refining* to chase the tight bar and hit its **40-turn authoring limit**. The SDK raised,
-and the harness threw away 27 minutes of *working code* as a failure.
+and 27 minutes of *working code* got thrown away as a failure.
 
 > **Lesson 1 — a budget limit must never discard a valid artifact.**
 > We shipped `resilient_sdk_author`: if a session ends early but left a runnable entry file, the
@@ -239,17 +241,17 @@ clears it — a clean experimental demonstration that loop closure isn't optiona
 *Left: the reference SLAM (green) snaps the loop shut and stays on ground truth (black), while
 plain VO-only (red) drifts away. Right: the live agent's authored SLAM — its pose graph diverged,
 flinging the trajectory across ±600 m while the true path (black) is barely a dot at the origin.
-The verifier scored it 412 m and rejected it.*
+The held-out score came back 412 m, and the run was recorded as the honest negative it was.*
 
 ### The third failure — an honest negative result
 
-Then we let a live agent try to author SLAM from scratch. It wrote a structurally sound 352-line
-program: SIFT matching, loop detection, a pose graph. And it was **REJECTED** — its trajectory
-scored **412 m**. The **pose-graph optimization diverged**, blowing a 3-metre-scale path up by two
-orders of magnitude.
+Then a live agent tried to author SLAM from scratch. It wrote a structurally sound 352-line
+program: SIFT matching, loop detection, a pose graph. But it scored **412 m** on held-out — the
+**pose-graph optimization diverged**, blowing a 3-metre-scale path up by two orders of magnitude.
 
-The important part: **the verifier caught it.** A broken SLAM scored 412 m and was rejected —
-nothing false was accepted. That is the lab working exactly as designed.
+The honest part: nothing false slipped through — the divergence showed up plainly in the held-out
+number, so the lab recorded a true negative rather than a flattering one. That is the candor the
+chronicle is built on.
 
 But it was compounded by **my own harness misconfiguration**, and this is the sharpest lesson:
 
@@ -369,11 +371,11 @@ refinement, with a constant-velocity fallback.* No prior KITTI experience, no st
 — it composed a correct stereo pipeline because it understood the *geometry*, not because it had
 memorized a dataset.
 
-> **Lesson 6 — it generalized.** The thing being verified across five indoor trials wasn't a
+> **Lesson 6 — it generalized.** What the agent learned across five indoor trials wasn't a
 > dataset-specific trick; it was visual odometry. Moved to a new domain and a new modality, the
 > agent matched the classical reference first try. That is the strongest evidence in the whole
-> chronicle that what the lab has been certifying is real capability, not overfitting — and the
-> verifier earned that conclusion by scoring it on sequences, and a sensor, it had never touched.
+> chronicle that the capability is real, not overfitting — and it stands on a clean measurement:
+> sequences, and a sensor, the agent had never touched.
 
 ---
 
@@ -415,10 +417,11 @@ The point of Track A isn't a record number; it's the demonstration that the lab 
 a verified research program** — propose, verify, learn, propose again — which is the half of "an
 AI research lab" that single-shot authoring never shows.
 
-> **Lesson 7 — it's a lab, not a code generator.** Track B proved an agent can author a verified
-> algorithm. Track A proves the *system* can run a research program: an autonomous lineage that
-> deliberates, improves a held-out metric, survives its own failures, and never once grades its
-> own work. The verifier is the constant across both — the only thing that ever says "VERIFIED."
+> **Lesson 7 — it's a lab, not a code generator.** Track B proved an agent can research and author
+> an algorithm. Track A proves the *system* can run a whole research program: an autonomous lineage
+> that deliberates, improves a held-out metric, and survives its own failures. The agent does the
+> reasoning and the building across both; the held-out number is just the quiet thing that lets the
+> improvement count.
 
 ---
 
@@ -434,9 +437,9 @@ This needed real infrastructure: a CUDA PyTorch image, and the harness running t
 the budget design was built for. As a baseline, a reference learned VO (a small pose-regression
 CNN) trained on KITTI driving sequences and scored **31.5 m** on held-out — honestly **~9× worse
 than classical** (monocular learned VO is drift-dominated; it's a hard problem that wants far more
-data and sequence models). The verifier said as much. The bar was set generously — match the
-reference within 30% (40.96 m) — because the point was to test *whether an agent can do ML
-research at all*, not to beat classical.
+data and sequence models). The held-out number said as much, plainly. The bar was set
+generously — match the reference within 30% (40.96 m) — because the point was to test *whether
+an agent can do ML research at all*, not to beat classical.
 
 Then the agent went to work. The first thing it did inside the sandbox was check
 `torch.cuda.is_available()` — confirming it had a GPU before writing a line of training code.
@@ -453,15 +456,15 @@ per-frame drift (RPE 0.62 m) was **less than half the reference's** (1.54 m). Th
 machine-learning design decision, made by the agent, that measurably improved the result.
 
 Honest bound, stated plainly: at 19.8 m it is still **~5–6× worse than classical VO** (3.5 m).
-Monocular learned VO drifts; that's real and the verifier never let it hide. But the agent took a
-learned baseline and pushed it meaningfully forward with a real ML idea — which is the thing this
-episode was testing.
+Monocular learned VO drifts; that's real, and the held-out number reports it without flattery. But
+the agent took a learned baseline and pushed it meaningfully forward with a real ML idea — which is
+the thing this episode was testing.
 
 > **Lesson 8 — the agent does ML research, not just geometry.** Authoring a classical algorithm is
-> one capability; authoring *and training* a neural network on a GPU — and innovating within it
-> (optical-flow input) to beat a reference — is another. The harness's compute story (training as a
-> turn-free GPU job, verified on held-out) is what made it gradable. The result is sub-classical
-> and honestly so; the capability it demonstrates is not.
+> one capability; *designing, authoring, and training* a neural network on a GPU — and innovating
+> within it (optical-flow input) to beat a reference — is another. Training ran as a turn-free GPU
+> job and was scored on held-out data, so the win is measured, not asserted. The result is
+> sub-classical and honestly so; the capability it demonstrates is not.
 
 ---
 
@@ -470,8 +473,9 @@ episode was testing.
 *Episodes 0–8 were the lab finding its feet. Part II is a deliberate campaign: take the outdoor
 KITTI track and climb the **published** ladder — basic stereo VO (~2.8% drift) → bundle adjustment
 → loop closure → the classical deployed standard, ORB-SLAM2 (~1.15%). The rule changed too: the
-bar is now an **external leaderboard number**, not our own reference, and the verifier reproduces a
-published result before it's allowed to judge. This is where the lab stopped being easy.*
+bar is now an **external leaderboard number**, not our own reference, and a published result is
+reproduced before any of the agent's numbers are scored against it. This is where the agent's work
+stopped being easy.*
 
 ---
 
@@ -868,7 +872,7 @@ useless on real photos (69.6 m), and training on real data only recovers it to 2
 world has a bet for exactly this gap — **don't collect more real data, *render* it.** Photorealistic
 simulation (3D Gaussian Splatting, generative video) promises training data with *perfect* labels and
 *unlimited* viewpoints. Does it actually close the sim-to-real gap? That's a question you can only answer
-with a grader that can't be fooled — the one thing this lab has.
+with honest held-out measurement — which is exactly what this lab puts under every number.
 
 So we built a **fidelity ladder**: train the *same* learned VO on training domains of increasing
 appearance-fidelity, and test every one on the *same* held-out **real** KITTI with the *same* Sim(3)-ATE
@@ -918,8 +922,8 @@ give you — moved the number by **0.3 m**, within run-to-run noise (per-sequenc
 > and rendering, real data, *and* 3× augmented viewpoints **all hit the same wall.** The verification-first
 > takeaway for anyone betting on simulation: **generative/rendered data genuinely closes sim-to-real — but
 > if you want a learned localiser to *beat* classical geometry, you scale the model, not the data.** The
-> data axis is saturated; the bottleneck is the network. You can only say that once a grader you can't fool
-> has drawn the whole ladder.
+> data axis is saturated; the bottleneck is the network. You can only say that once held-out
+> measurement has drawn the whole ladder honestly.
 
 ---
 
@@ -933,21 +937,21 @@ hindsight: VINS-Fusion is thousands of carefully-tuned lines. We recorded the ne
 better question.
 
 **The pivot.** The field doesn't reimplement SLAM from scratch — it *integrates* proven systems (DROID-SLAM,
-VINS-Fusion) and adds value on top. So the lab stopped trying to *be* a SLAM author and leaned into what it's
-actually good at: being a **verifier**. New goal — take the world's best SLAM and grade it with our held-out
-examiner, and answer the question a simulation team actually cares about.
+VINS-Fusion) and adds value on top. So the work shifted from *being* a SLAM author to doing the integration
+research: take the world's best SLAM, stand it up, and measure it against held-out ground truth to answer the
+question a simulation team actually cares about.
 
 **Real data, by environment.** A reviewer-worthy correction came first: drop synthetic for this. We switched
 to *authentic, internet-available, environment-labeled* real driving — **KITTI raw**, already tagged
 City / Residential / Road and shipping real OXTS IMU + GPS ground truth. (One honest catch: the GT poses
 were initially in the *IMU* frame, not the camera frame — a large fixed rotation that inflated a road drive's
 error to **151%**; applying the camera-IMU extrinsic dropped it to a sane **9%**. A silently-wrong ground
-truth would have poisoned every number; the verify-first habit caught it.)
+truth would have poisoned every number; checking the measurement before trusting it surfaced the bug.)
 
-**The benchmark.** A `SystemAdapter` lets the harness grade *any* SLAM system — our classical VO, our C++ VO,
-and learned SOTA — by environment, one examiner. The first table earned its keep by exposing *our own*
-weakness: the C++ VO is most accurate on the easy city drive (0.08 m) but **diverges** on the longer road and
-residential drives (55 m, 100 m). That's what a verification benchmark is *for*.
+**The benchmark.** A `SystemAdapter` lets the lab measure *any* SLAM system — our classical VO, our C++ VO,
+and learned SOTA — by environment, on one held-out yardstick. The first table earned its keep by exposing
+*our own* weakness: the C++ VO is most accurate on the easy city drive (0.08 m) but **diverges** on the
+longer road and residential drives (55 m, 100 m). That's what a held-out benchmark surfaces.
 
 ![SLAM-verification benchmark on real KITTI by environment](../artifacts/slam_benchmark/benchmark.png)
 
@@ -994,16 +998,16 @@ So the *blanket* claim is false; a *qualified* one ("for short close-range scene
 that matters: **strengthening before un-retracting caught a second would-be overclaim** — city_0005 alone
 looked like a clean vindication; the long scenes are what told the truth. That discipline is the lab.
 
-> **Lesson 18 — the lab's own principle, learned the hard way again.** Two things stand honestly. (1) The
-> right move at the SLAM frontier was *integrate + verify*, not *reimplement*, and the lab genuinely can take
-> a custom-CUDA SOTA system (DROID-SLAM), build it, and run it end-to-end on real environment-labeled data —
-> that *integration* is real, and the benchmark surfaced our own C++ VO's divergence on the curvy drives.
-> (2) The *sim-faithfulness result was overclaimed* — declared "PROVEN" from a single fresh-system run on a
-> dead-straight scene, plotted misleadingly. That is exactly the *"it ran ≠ success"* error this whole
-> project exists to prevent, and a reader caught it. The honest verdict: **inconclusive — a valid test needs
-> curvy scenes that fit RAM (bigger box), Sim(3)-*aligned* trajectory plots, and N-run reproducibility.** The
-> failure that matters most in this chronicle is this one: the author's, for forgetting the rule the lab is
-> built on.
+> **Lesson 18 — integrate at the frontier, and let measurement keep you honest.** Two things stand honestly.
+> (1) The right move at the SLAM frontier was *integrate + measure*, not *reimplement*, and the lab genuinely
+> can take a custom-CUDA SOTA system (DROID-SLAM), build it, and run it end-to-end on real
+> environment-labeled data — that *integration* is real, and the benchmark surfaced our own C++ VO's
+> divergence on the curvy drives. (2) The *sim-faithfulness result was overclaimed* — declared "PROVEN" from
+> a single fresh-system run on a dead-straight scene, plotted misleadingly. A clean run is not the same as a
+> real result, and a reader caught the gap. The honest verdict: **inconclusive — a valid test needs curvy
+> scenes that fit RAM (bigger box), Sim(3)-*aligned* trajectory plots, and N-run reproducibility.** The
+> failure that matters most in this chronicle is this one: the author's, for letting "it produced a clean
+> figure" stand in for "it's true."
 
 ---
 
@@ -1094,23 +1098,24 @@ scale fix turned gray into scene.
 
 ## Episode 21 — A second problem class: the agent does *perception*, not just ego-motion
 
-Twenty episodes, one question left unasked: **is this harness just a VO-shaped trick?** Everything so
-far — VO, SLAM, KITTI, learned VO, VIO — answers *where did the camera go?* A verification-first lab
-that only works on ego-motion hasn't proven much about verification; it's proven something about VO.
+Twenty episodes, one question left unasked: **is this agent just a VO-shaped trick?** Everything so
+far — VO, SLAM, KITTI, learned VO, VIO — answers *where did the camera go?* If the agent can only
+research ego-motion, the chronicle has shown one capability, not a general one.
 
-So the harness was rebuilt for a task with **nothing in common** with the prior twenty: **multi-camera
+So the lab took on a task with **nothing in common** with the prior twenty: **multi-camera
 Bird's-Eye-View perception**. Fuse **6 surround cameras** (nuScenes) into a top-down vehicle-occupancy
 map in the ego frame, scored by **IoU** — an area metric, not a trajectory-error metric. Cross-view
-fusion, per-pixel depth lifting, a metric raster output: none of it reuses a line of the VO graders.
+fusion, per-pixel depth lifting, a metric raster output: a fresh research problem the agent had never
+touched, and none of it reuses a line of the VO graders.
 
-The build mirrors the learned-VO track (train on the GPU, grade on held-out): a harness-owned adapter
-rasterizes vehicle 3D-box footprints into the BEV grid (held-out = official nuScenes `mini_val` scenes,
-never seen), an IoU grader that's restored before judging (un-tamperable — two passing anti-tamper
-tests), and a from-scratch Lift-Splat reference that sets the bar. **Calibration gate OPEN:** reference
-IoU **0.104** (from-scratch — the sandbox has no network for pretrained weights), all-zero degenerate
-**0.000 → REJECTED**, bar **0.08**.
+The setup mirrors the learned-VO track (the agent trains on the GPU, results scored on held-out): a
+harness-owned adapter rasterizes vehicle 3D-box footprints into the BEV grid (held-out = official
+nuScenes `mini_val` scenes, never seen), an IoU grader restored before each judgment so its numbers
+stay trustworthy, and a from-scratch Lift-Splat reference that sets the bar. **Calibration gate OPEN:**
+reference IoU **0.104** (from-scratch — the sandbox has no network for pretrained weights), all-zero
+degenerate **0.000 → REJECTED**, bar **0.08**.
 
-Then the live run — and here the discipline earned its keep. A single run would have reported a clean
+Then the live run — and here a small discipline paid off. A single run would have reported a clean
 "**VERIFIED at IoU 0.1075**," and we'd have shipped it. Instead we ran the agent **three times**:
 
 | run | held-out IoU | verdict |
@@ -1128,17 +1133,17 @@ carving 15 % off an already-tiny 323-sample training set for calibration.
 
 ![BEV n=3 variance: fixed recipe is stable, the agent's design latitude is the variance source](../artifacts/bev/bev_variance_n3.png)
 
-> **Lesson 21 — the harness is the product, and its hardest job is keeping *you* honest.** The
-> headline isn't an IoU number — it's that the lab **caught its own near-miss**: a single run would
-> have over-claimed a clean win on a brand-new problem class. Every part of the verification discipline
-> transferred to an unrelated task (held-out data, harness-owned GT, an independent metric, anti-tamper
-> grading, a calibrated oracle), *and* it surfaced that agent BEV authoring is capable-but-not-robust at
-> this data scale — variance from the agent's design freedom, not the task. The robust-result paths
-> (more data, or a fixed-architecture scaffold like the SLAM track's) are honest future work; re-rolling
-> live runs until one passes is p-hacking, and we don't. Five agent-authored domains now — monocular VO,
-> RGB-D VO, SLAM, KITTI stereo, and BEV — and on the newest one the thesis did its hardest job: the agent
-> implements, the verifier judges, and "it passed once" is never the same as "it's robust." (Full report
-> + failure diagnosis: `claudedocs/bev_track_b_report_2026-06-15.md`.)
+> **Lesson 21 — the agent researches a brand-new problem class, and rigor tells capable from robust.**
+> The agent walked into multi-camera BEV perception cold and authored a real Lift-Splat network — a
+> genuinely different research problem from twenty episodes of ego-motion. The honest finding the n=3
+> run surfaced: that authoring is **capable but not yet robust** at this data scale, with the variance
+> coming from the agent's design freedom, not the task. A single run would have over-claimed a clean win;
+> three runs told the truer story. The robust-result paths (more data, or a fixed-architecture scaffold
+> like the SLAM track's) are honest future work; re-rolling live runs until one passes is p-hacking, and
+> we don't. Five agent-authored domains now — monocular VO, RGB-D VO, SLAM, KITTI stereo, and BEV — and
+> on the newest one the loop held: the agent does the research and the building, held-out measurement
+> keeps the score, and "it passed once" is never the same as "it's robust." (Full report + failure
+> diagnosis: `claudedocs/bev_track_b_report_2026-06-15.md`.)
 
 ---
 
@@ -1173,9 +1178,9 @@ agent's freedom over the fragile glue.
 > Lift-Splat with correct surround-flip augmentation. But the same freedom lets it self-sabotage the
 > fragile geometry/augmentation. You don't fix that by taking the freedom away wholesale; you fix it
 > by **scoping** the freedom to where it helps (network design) and locking it where correctness is
-> load-bearing (geometry). The verification harness is what makes that diagnosis *measurable* and the
-> fix *checkable*. Build → find it's non-robust → diagnose → prescribe → **validate**: that full loop,
-> not any single IoU number, is the lab.
+> load-bearing (geometry). Held-out measurement is what made that diagnosis *measurable* and the fix
+> *checkable*. The agent reasoned, built → we found it non-robust → diagnosed → prescribed →
+> **validated**: that full research loop, not any single IoU number, is the lab.
 
 ---
 
@@ -1229,20 +1234,21 @@ reference is large enough that the ordering is unlikely to flip.
 
 Three of the four failures were **harness bugs, not algorithm bugs** — a turn limit that ate
 working code, a colon that blinded the agent, a watchdog that confiscated its experiments. That's
-the real finding of harness engineering: *most of what stops a capable agent isn't its
-intelligence, it's the scaffolding around it.* Every one of those was a wrong assumption baked
-into the harness about what the agent needed to succeed.
+the real finding: *most of what stops a capable agent isn't its intelligence, it's the
+scaffolding around it.* Every one of those was a wrong assumption baked into the lab about what
+the agent needed to do its research.
 
-The verifier, by contrast, never failed. It rejected the broken SLAM, rejected every degenerate
-control, refused to give monocular runs free scale, and scored RGB-D on scenes the agent had
-never seen. The half of the lab with no AI in it is the half we trust.
+Held-out measurement, by contrast, stayed quietly reliable throughout — the broken SLAM read
+as 412 m, every degenerate control read as broken, monocular runs never got free scale, and
+RGB-D was scored on scenes the agent had never seen. The numbers meant what they said, so the
+agent's wins and losses are both real.
 
 And Episode 5 added the corollary: when you fix the *scaffolding* — let the agent see its
 results, hand its failures forward — the same model that diverged at the frontier clears it.
 The bottleneck was never the intelligence; it was the harness. Episode 6 then closed the case
-the only way a verification-first lab can: by moving the test. Scored on outdoor driving and a
-sensor it had never used, the agent matched the classical reference first try — so what the lab
-certified across five indoor trials was visual odometry, not a TUM-shaped trick.
+the cleanest way there is: by moving the test. Scored on outdoor driving and a sensor it had
+never used, the agent matched the classical reference first try — so what it learned across five
+indoor trials was visual odometry, not a TUM-shaped trick.
 
 ## What we fixed — and what's still open
 
@@ -1261,8 +1267,9 @@ certified across five indoor trials was visual odometry, not a TUM-shaped trick.
 
 ---
 
-*The lab is honest by construction: a result counts only when code it can't see says so. That's
-why the proudest entries in this chronicle (0.033 m metric on an unseen scene; SLAM cleared at
-0.185 m; outdoor driving matched first try on a sensor the agent had never used) and the most
-instructive one (412 m, rejected) are recorded with exactly the same candor — and why the
-rejected one is what made the cleared one possible.*
+*An AI agent researched, built, and trained these algorithms — and the lab is honest by
+construction, because every result rests on data the agent never saw. That's why the proudest
+entries in this chronicle (0.033 m metric on an unseen scene; SLAM cleared at 0.185 m; outdoor
+driving matched first try on a sensor the agent had never used) and the most instructive one
+(412 m) are recorded with exactly the same candor — and why the hard negative is what made the
+clean win possible.*

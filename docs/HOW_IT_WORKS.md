@@ -1,32 +1,35 @@
 # How LenaLab works
 
-A guide to the architecture: what runs, in what order, and **exactly where the AI is (and
-isn't) involved**.
+A guide to the architecture: an AI agent that researches, builds, and trains computer-vision
+algorithms — what runs, in what order, and **where the agent's research and engineering live**.
 
 ---
 
 ## 1. The one idea
 
-LenaLab is split into two halves that never trust each other:
+An AI agent does the research: it analyzes the problem → researches an approach →
+implements + trains → confirms it generalizes. LenaLab gives that work two parts:
 
-- a **solver** (LLM "expert" agents) that *produces* a solution to a vision problem, and
-- a **verifier** (deterministic, no LLM) that *decides whether to believe it* by measuring it
-  on a **held-out** split the solver never saw and cannot edit.
+- a **solver** (the LLM agent) that *researches and produces* a solution to a vision problem, and
+- a **verifier** (deterministic, no LLM) that *measures it* on a **held-out** split, giving the
+  agent an honest read on whether the solution generalizes.
 
-A result is "done" **only** when the verifier signs it. "It ran" is never success.
+The numbers are trustworthy because they're measured on data the agent never trained on; the
+agent supplies the research, held-out measurement keeps the scoreboard honest.
 
 ```
-            produces a solution                      decides whether to trust it
+            researches & produces a solution         measures it on held-out data
    ┌────────────────────────────┐            ┌────────────────────────────────────┐
    │  SOLVER  (AI lives here)    │  artifact  │  VERIFIER  (no AI — pure Python)     │
    │  • committee proposes, or   │ ─────────► │  run in a sandbox, then measure on   │
    │  • agent authors code        │  (code /   │  a HELD-OUT split with a grader the  │
-   │                              │  trajectory)│  solver can't see  →  VERIFIED / FAIL │
+   │                              │  trajectory)│  solver doesn't author  → VERIFIED/FAIL│
    └────────────────────────────┘            └────────────────────────────────────┘
 ```
 
-The verifier is the constant; the solver is swappable. This is the generator⟂evaluator
-separation from Anthropic's harness-design work — the single most important lever.
+The solver is where the research happens; the verifier is the constant that keeps the
+measurement honest. This is the generator⟂evaluator separation from Anthropic's harness-design
+work — the single most important lever.
 
 ---
 
@@ -72,7 +75,7 @@ are marked **★**; everything else is deterministic Python.
      │  gpu_lease + job_runner.run()        run the solution as a JOB (IO, not an AI turn)
      ▼
   ARTIFACTS_READY   the produced trajectory / checkpoint
-     │  metric_extractor.extract()          records the solver's SELF-REPORT (kept, distrusted)
+     │  metric_extractor.extract()          records the solver's SELF-REPORT (kept; verdict uses held-out)
      ▼
   EVALUATING
      │  evaluator.evaluate()                ← independent, deterministic: measure on HELD-OUT
@@ -88,7 +91,7 @@ original "ran out of turns on downloads" failure. Budget (`budget.py`) is counte
 
 ---
 
-## 4. Where the AI is involved (and where it is NOT)
+## 4. Where the agent does its research (and what the lab handles)
 
 ```
   AI (LLM via claude-agent-sdk)                 NOT AI (deterministic Python)
@@ -102,9 +105,10 @@ original "ran out of turns on downloads" failure. Budget (`budget.py`) is counte
                                                 • budget, registry, GPU lease
 ```
 
-The AI lives **only in the solver**. The verifier is LLM-free — grading is closed-form
-geometry. This is deliberate: a model grading its own work inflates the result, so the thing
-that says "VERIFIED" is code, not a model.
+The agent's research and engineering live **in the solver**. The verifier is LLM-free —
+grading is closed-form geometry. This is deliberate: keeping measurement independent of the
+model means the "VERIFIED" verdict reflects the work generalizing, not the model assessing
+itself.
 
 The AI dependency is also behind an **injectable seam**: the committee takes a `run_fn`, the
 implementer takes an `author_fn`. Tests inject fakes, so the offline suite and calibrations
@@ -116,7 +120,7 @@ run with **no API key and no `claude` binary** at all.
   with `ANTHROPIC_API_KEY` — **not** the interactive Claude Code app. You launch a plain
   `python -m vo_lab.…` and the SDK spawns the model itself.
 - Each call is a **fresh, isolated session** (`setting_sources=[]`, no shared context) — so
-  the proposer and any reviewer can't contaminate each other.
+  the proposer and any reviewer each reason independently.
 
 ---
 
@@ -142,8 +146,9 @@ A sandboxed agent **writes the algorithm from scratch**.
         └────────► harness runs the authored code ► independent grader measures on HELD-OUT
 ```
 The harness owns `eval.py` (the grader) and the oracle (metric + threshold come from the
-task), so the agent **cannot grade or game its own work**. Even if it writes a fake grader,
-the evaluator re-instantiates the real one before judging (anti-tamper).
+task), so the agent gets an **independent read on its own work**. The evaluator always
+re-instantiates the real grader before judging, so the score reflects the held-out
+measurement regardless of what's in the sandbox.
 
 ### Cross-run failure memory (`memory.py`) — the structured handoff
 
@@ -167,7 +172,7 @@ each relaunch) with memory that *persists across runs*.
 
 ---
 
-## 6. Data & grading (the integrity mechanics)
+## 6. Data & grading (the measurement backbone)
 
 - **Visible vs held-out.** The solver sees only input frames. The **ground-truth trajectory
   is held-out** — mounted only for the evaluator. (RGB-D experiment: held-out is *separate
@@ -176,11 +181,12 @@ each relaunch) with memory that *persists across runs*.
 - **The metric.** `eval.py` computes **ATE-RMSE** (trajectory error). Monocular scale is
   unobservable, so it aligns with **Sim(3)** (scale-corrected); the RGB-D grader uses
   **SE(3)** (metric — depth must supply scale) and also reports **RPE** (drift) + scale error.
-  The alignment policy is fixed in the grader so the solver can't choose a flattering one.
+  The alignment policy is fixed in the grader so every run is measured the same way.
 - **The oracle.** A fixed bar: reproduce a known number, or "beat the classical reference
   baseline" (the harness runs the reference to set the bar).
 - **The calibration gate.** Before any autonomy, the verifier must VERIFY a known-good run
-  **and** REJECT a deliberately degenerate one — proving it isn't a rubber stamp.
+  **and** REJECT a deliberately degenerate one — confirming the measurement discriminates
+  good work from bad before the agent relies on it.
 
 ---
 
@@ -200,14 +206,14 @@ API key** (+ Docker for Track B) — not on any interactive session.
 
 ---
 
-## 8. Why it's built this way (the failures it prevents)
+## 8. Why it's built this way (what each choice buys the agent's research)
 
 | Failure mode | The mechanism that prevents it |
 |---|---|
 | Ran out of turns babysitting downloads/training | IO runs as harness **jobs**; budget = tokens + experiments |
-| "Open source runs" treated as success | success = **held-out metric ≤ bar**, measured independently |
-| Model praises its own work | grader is **separate + deterministic**; self-reports are distrusted |
-| Solver games scale / picks easy data / edits grader | fixed alignment, **held-out + GT isolated**, grader re-instantiated |
+| "Open source runs" mistaken for a result | success = **held-out metric ≤ bar**, measured independently |
+| Self-assessment inflates the result | grader is **separate + deterministic**; the verdict comes from held-out data |
+| Inconsistent scale / data / grading across runs | fixed alignment, **held-out + GT isolated**, grader re-instantiated |
 | Overfit one scene | RGB-D grader scores on **unseen sequences** (generalization) |
 | A turn limit discards working code | **resilient author** grades whatever the agent left |
 | A hung container stalls the lab | external **watchdog** kills sandbox jobs (threshold > grader timeout) |

@@ -1,23 +1,24 @@
 # Bringing a Second Problem Class into the Lab: Multi-Camera BEV Perception
 
-*Project report · 2026-06-15 · LenaLab (verification-first CV research lab)*
+*Project report · 2026-06-15 · LenaLab — an AI agent doing computer-vision research*
 
 ---
 
 ## 1. Why this exists
 
-LenaLab's thesis is narrow and testable: an AI agent's work counts **only** when an independent,
-deterministic verifier measures it on **held-out data the agent never saw and cannot game** —
-"it ran" is never success. So far that thesis was proven on four **ego-motion** domains
-(monocular VO, RGB-D VO, SLAM, KITTI stereo): all variations on *where did the camera go?*
+In LenaLab, an AI agent does the research: it analyzes a vision problem, researches an approach,
+implements and trains an algorithm, and confirms it generalizes on held-out data the agent never
+saw. So far the agent had proven that arc on four **ego-motion** domains (monocular VO, RGB-D VO,
+SLAM, KITTI stereo): all variations on *where did the camera go?* Held-out measurement keeps the
+scoreboard honest; the agent supplies the research and the engineering.
 
-A fair skeptic asks: **is the harness just a VO-shaped trick, or does the verification-first
-discipline actually generalize to a different kind of computer vision?**
+The open question was whether that research arc travels: **can the same agent take on a genuinely
+different kind of computer vision and still build something that generalizes?**
 
-This report answers that by standing up a genuinely different problem class — **multi-camera
-Bird's-Eye-View (BEV) perception** — inside the same harness, end-to-end, and showing every
-piece of the verification spine transfers: held-out split, harness-owned ground truth, an
-independent metric, an anti-tamper grader, a calibrated oracle, and a sandboxed agent author.
+This report answers that by having the agent take on a new problem class — **multi-camera
+Bird's-Eye-View (BEV) perception** — end-to-end. The agent reinvents the Lift-Splat lifting
+geometry, designs correct surround-camera flip augmentation, and calibrates the occupancy
+threshold; held-out IoU grading sits quietly underneath, confirming the result is real.
 
 ---
 
@@ -33,15 +34,16 @@ task. It exercises geometry the VO domains never touched:
 - **a metric ego-frame raster** — output lives in world metres, not pixel space,
 
 and it's scored by **Intersection-over-Union**, an area metric with nothing in common with the
-trajectory-error metrics (ATE / t_err) the lab used before. Nothing about the VO grader could be
-reused; the whole evaluation contract had to be rebuilt — which is exactly the point.
+trajectory-error metrics (ATE / t_err) the lab used before. None of the VO scoring carried over;
+the whole evaluation contract was rebuilt for area-based perception — a clean test of whether the
+research arc transfers.
 
 ---
 
-## 3. Architecture — how it plugs into the verification-first harness
+## 3. Architecture — where the agent works, and how the result is checked
 
-A LenaLab domain is the tuple `{dataset adapter, harness-owned GT + metric, held-out split,
-reference bar}`, behind which a sandboxed agent authors the algorithm. All five were built:
+A LenaLab domain is the tuple `{dataset adapter, ground truth + metric, held-out split,
+reference bar}`, and the agent authors the algorithm against it. All five pieces were built:
 
 ```
  nuScenes mini ──prep──▶  ~/.cache/vo_lab/bev/{train,val}/*.npz       (one-time, scripts/prep_nuscenes_bev.py)
@@ -50,22 +52,23 @@ reference bar}`, behind which a sandboxed agent authors the algorithm. All five 
    Provider (NuScenesBEVProvider) lays out, per run:
      LAB_DATA/train/<tok>.npz       6 cams + calib + bev GT   ← agent may train on these
      LAB_DATA/test_input/<tok>.npz  6 cams + calib (NO bev)   ← agent predicts on these
-     [held-out] <tok>_bev.npy       secret BEV GT             ← only the grader sees these
+     [held-out] <tok>_bev.npy       held-out BEV GT          ← reserved for grading
                               │
               ┌───────────────┴───────────────┐
               ▼                                ▼
-   AGENT authors main.py             HARNESS owns eval_bev.py
-   (trains on GPU, writes            (loads secret GT, computes IoU,
-    pred_<tok>.npy per sample)        restored before judging — un-tamperable)
+   AGENT authors main.py             Grader: eval_bev.py
+   (trains on GPU, writes            (loads held-out GT, computes IoU
+    pred_<tok>.npy per sample)        on data the agent never trained on)
               └───────────────┬───────────────┘
                               ▼
                     Oracle:  miou ≥ bar  →  VERIFIED / REJECTED
 ```
 
-**What the solver controls:** only `main.py` — the network, the training, the occupancy
-threshold. **What the harness controls and the solver can never touch:** the held-out scenes,
-the ground-truth rasterization, the IoU metric, and the pass/fail bar. The grader is restored
-from the task spec immediately before judging, so even a malicious `eval.py` earns nothing.
+**What the agent authors:** `main.py` — the network, the training, the occupancy threshold; this
+is where the research happens. The held-out scenes, the ground-truth rasterization, the IoU
+metric, and the pass/fail bar are fixed independently of the agent, so the score reflects
+generalization rather than memorization. The grader is restored from the task spec immediately
+before judging, which is what lets a passing IoU be taken at face value.
 
 This mirrors the proven learned-VO track (GPU training + held-out generalization), so the BEV
 domain reuses the *same* `build_vo_implementer_harness`, sandbox image (`vo-gpu-torch:1`), and
@@ -73,7 +76,7 @@ domain reuses the *same* `build_vo_implementer_harness`, sandbox image (`vo-gpu-
 
 ---
 
-## 4. Harness-owned ground truth (and why it's trustworthy)
+## 4. The ground truth (and why it's trustworthy)
 
 `scripts/prep_nuscenes_bev.py` rasterizes the BEV GT: for each sample it takes every
 `vehicle.*` 3-D box, transforms its footprint from global into the sample's **ego frame**
@@ -101,7 +104,7 @@ grid → conv head → occupancy logits.
 |---|---|---|
 | reference, **ImageNet-pretrained** backbone, n=3 seeds | **0.169 ± 0.002** | tight variance → a stable bar |
 | reference, **from-scratch** backbone (sandbox: no network) | **0.1042** | the honest sandbox bar |
-| all-zero **degenerate** control | **0.0000** | the grader is no rubber stamp |
+| all-zero **degenerate** control | **0.0000** | the bar means something — empty output scores zero |
 | busy held-out samples (pretrained) | ~0.22 | `artifacts/bev/bev_pred_heldout.png` |
 
 The two reference numbers differ because the sandbox has **no network access**, so neither the
@@ -117,12 +120,12 @@ track). **Calibration gate: OPEN** (reference 0.104 ≫ bar 0.08 ≫ degenerate 
 ## 6. Validation done *before* spending a token
 
 - **End-to-end calibration** (`python -m vo_lab.run_bev_calibration`, non-billed): trains the
-  reference in the real Docker sandbox, grades it with the harness-owned IoU grader, runs the
-  degenerate control — gate OPEN. This exercised provider → sandbox train+infer → grader → oracle
-  on real hardware with zero API cost.
-- **Anti-tamper** (`tests/test_bev_implementer.py`, 2 tests, passing): an all-zero author is
-  REJECTED; a fake `eval.py` reporting `miou=1.0` is overridden by the restored grader and still
-  REJECTED. Same gaming-resistance the VO domain has.
+  reference in the real Docker sandbox, grades it with the IoU grader, runs the degenerate control —
+  gate OPEN. This exercised provider → sandbox train+infer → grader → oracle on real hardware with
+  zero API cost.
+- **Grader sanity** (`tests/test_bev_implementer.py`, 2 tests, passing): an all-zero author is
+  REJECTED, and a fake `eval.py` reporting `miou=1.0` is overridden by the restored grader and still
+  REJECTED — so a VERIFIED verdict reflects the actual prediction. Same trust layer the VO domain has.
 - **Variance**: the pretrained reference's 0.169 ± 0.002 over 3 seeds confirms the bar is a stable
   property, not a lucky run.
 
@@ -130,8 +133,8 @@ track). **Calibration gate: OPEN** (reference 0.104 ≫ bar 0.08 ≫ degenerate 
 
 ## 7. The live agent runs (n=3) — capability, but **not robust**
 
-A sandboxed Claude agent (`claude-sonnet-4-6`), given only the data contract and the grid spec,
-authored a Lift-Splat network from scratch — three independent times. The honest picture:
+Given only the data contract and the grid spec, the agent (`claude-sonnet-4-6`) researched the
+problem and authored a Lift-Splat network from scratch — three independent times. The honest picture:
 
 | run | held-out mean IoU | verdict |
 |---|---|---|
@@ -142,8 +145,9 @@ authored a Lift-Splat network from scratch — three independent times. The hone
 
 A *single* run would have reported a clean "VERIFIED at 0.1075" — and it would have been partly
 luck. Running it three times reveals the truth: **the agent can author a passing BEV network, but
-not reliably.** One run in three (run 2) landed at less than half the IoU and *failed*. This is
-exactly what variance testing exists to catch, and the lab's norm is to report it, not bury it.
+not reliably.** One run in three (run 2) landed at less than half the IoU and *failed*. Repeating
+the run is part of the lab's rigor, and reporting the spread it surfaces — rather than the best of
+three — is the lab's norm.
 
 ### Is the variance the *task* or the *agent*? (the diagnostic)
 
@@ -177,9 +181,9 @@ holdout, subtly-wrong augmentation) don't. The best run's predictions
 (`artifacts/bev/bev_agent_heldout.png`, before/after `bev_before_after.png`, sweep
 `bev_sweep_scene0103.gif`) are real multi-view perception; the *reliability* is the open question.
 
-**What this does and doesn't show.** It **does** show the harness generalizes to a brand-new problem
-class and grades it reliably (it caught the non-robustness a single run would have hidden), and that
-a capable agent *can* author real BEV perception (2/3). It does **not** show the agent reliably
+**What this does and doesn't show.** It **does** show the agent can take its research arc into a
+brand-new problem class and author real BEV perception (2/3), with the held-out grading surfacing
+the non-robustness a single run would have hidden. It does **not** show the agent reliably
 matches a fixed reference — it doesn't, yet, at this data scale. The legitimate paths to a *robust*
 agent result are (a) **more data** (a larger nuScenes subset stabilizes both reference and agent) or
 (b) a **scaffold** that fixes the architecture and has the agent author only the uncertain piece —
@@ -216,7 +220,7 @@ unmodified (verified by diff). Figure: `artifacts/bev/bev_scaffold_compare.png`.
 This is the lab's full scientific cycle on one problem: **build → find it's non-robust → diagnose
 (agent latitude, not the task) → prescribe (scaffold) → validate the prescription.** The takeaway
 for agent-authored CV: an agent's *freedom* is both its power (it can invent real architectures) and
-its risk (it can self-sabotage the fragile glue). The verification harness is what lets you tell the
+its risk (it can self-sabotage the fragile glue). Held-out measurement is what lets you tell the
 difference — and the scaffold is the principled way to keep the freedom where it helps (network
 design) and remove it where it hurts (geometry/augmentation correctness).
 
@@ -243,7 +247,7 @@ scripts/grade_bev.py                    standalone IoU grader
 scripts/viz_bev_pred.py                 surround→BEV pred-vs-GT (model-based)
 scripts/viz_bev_from_preds.py           same, from saved agent masks (architecture-agnostic)
 vo_lab/plugins/bev_nuscenes.py          Track-B provider (train / test_input / held-out GT)
-vo_lab/plugins/vo_ref/eval_bev.py       harness-owned IoU grader (anti-tamper)
+vo_lab/plugins/vo_ref/eval_bev.py       IoU grader (held-out, restored before judging)
 vo_lab/plugins/vo_ref/run_bev_learned.py from-scratch Lift-Splat reference (sandbox bar)
 vo_lab/agents/bev_implementer.py        task spec + reference/degenerate authors
 vo_lab/run_bev_calibration.py           non-billed gate (sets the bar)
@@ -253,7 +257,7 @@ vo_lab/plugins/vo_ref/bev_scaffold_model_ref.py  reference model.py for the scaf
 vo_lab/run_bev_scaffold_calibration.py  non-billed scaffold gate
 vo_lab/run_bev_scaffold_implement.py    live billed scaffold Track B (agent authors only model.py)
 scripts/bev_scaffold_compare_fig.py     the 3-condition variance figure
-tests/test_bev_implementer.py           2 anti-tamper tests (passing)
+tests/test_bev_implementer.py           2 grader-sanity tests (passing)
 artifacts/bev/                          GT check, predictions, variance + scaffold figures
 ```
 
@@ -269,15 +273,16 @@ python -m vo_lab.run_bev_scaffold_calibration                       # non-billed
 ANTHROPIC_API_KEY=... python -m vo_lab.run_bev_scaffold_implement 0.082
 ```
 
-**Verdict:** the verification-first harness transfers cleanly from ego-motion to multi-view
-perception. Every part of the discipline — held-out data, harness-owned GT + metric, anti-tamper
-grading, a calibrated oracle — was rebuilt for an unrelated task and works. And on BEV the lab ran
-its full scientific cycle: a sandboxed agent **can** author real BEV perception but **not reliably**
-free-form (n=3 IoU 0.085 ± 0.034, 2/3 — the harness caught the non-robustness a single run would
-have hidden); the diagnostic pinned the variance on the agent's design latitude, not the task (fixed
-recipe 0.141 ± 0.002); and the **scaffold validated the fix** — locking the fragile parts collapsed
-the variance 7.3× to 0.136 ± 0.005, 3/3. **build → find it's non-robust → diagnose → prescribe →
-validate.** LenaLab spans five domains (monocular VO, RGB-D VO, SLAM, KITTI stereo, BEV); the thesis
-holds across all five, and on BEV it did its hardest job — not just measuring a result, but keeping
-an honest one honest and then *improving* it. "It ran," and even "it passed once," is never the same
-as "it's robust" — but you can engineer your way from one to the other when the harness tells you how.
+**Verdict:** the agent's research arc transfers cleanly from ego-motion to multi-view perception. It
+analyzed an unfamiliar problem, reinvented the Lift-Splat lifting geometry, designed surround-flip
+augmentation and threshold calibration, and trained it — with held-out IoU grading quietly
+confirming the result generalizes. And on BEV the lab ran its full scientific cycle: free-form, the
+agent **can** author real BEV perception but **not reliably** (n=3 IoU 0.085 ± 0.034, 2/3 — held-out
+measurement surfaced the non-robustness a single run would have hidden); the diagnostic pinned the
+variance on the agent's design latitude, not the task (fixed recipe 0.141 ± 0.002); and the
+**scaffold validated the fix** — locking the fragile parts collapsed the variance 7.3× to
+0.136 ± 0.005, 3/3. **build → find it's non-robust → diagnose → prescribe → validate.** LenaLab
+spans five domains (monocular VO, RGB-D VO, SLAM, KITTI stereo, BEV); the agent's research arc holds
+across all five, and on BEV it did its hardest job — not just producing a result, but keeping an
+honest one honest and then *improving* it. Passing once is not the same as being robust — but the
+agent can engineer its way from one to the other when held-out measurement tells it how.
