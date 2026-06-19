@@ -44,6 +44,11 @@ negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Ful
 > replicated in 2D and 3D**, the variance-audited sim-to-real fidelity ladder, and a **trustworthiness
 > audit** that retracted one flagship and verified the rest. **Start there for the evidence.**
 
+> ## 🧠 **[What the agent figured out → `claudedocs/what_the_agent_figured_out.md`](claudedocs/what_the_agent_figured_out.md)**
+> The agent's actual design decisions, in its own words — depth for metric scale, a stable linear pose
+> graph after a divergence, an offset-anchoring fix for sensor fusion, optical-flow input for a learned
+> net, FP32 to dodge overflow, correct six-camera flip geometry. **The case that it does real research.**
+
 **How it works (architecture + diagrams + where the AI is involved):** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
 

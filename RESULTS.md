@@ -185,6 +185,7 @@ KITTI stereo, BEV, and 3D occupancy.**
 ---
 
 ## How to navigate
+- **What the agent figured out (its design decisions, in its own words):** [`claudedocs/what_the_agent_figured_out.md`](claudedocs/what_the_agent_figured_out.md)
 - **Full chronicle (Episodes 0–20):** [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md)
 - **BEV Track-B report (the second problem class):** [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md)
 - **Occupancy report (3D, the sixth domain):** [`claudedocs/occ_domain_report_2026-06-19.md`](claudedocs/occ_domain_report_2026-06-19.md)
