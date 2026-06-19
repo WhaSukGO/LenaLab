@@ -70,6 +70,28 @@ The VM is ephemeral. Two options: (a) just re-run the bring-up each session (nuS
 **Stop or terminate the instance when idle** — billing is per-second/minute and only while running. A
 forgotten A100 is ~$33/day; stopped, it's $0.
 
+## 🪙 Cheaper path — RunPod pod, `local` mode (no nested Docker)
+A RunPod *pod* is a container, so instead of nesting Docker we run the lab **directly in the pod** via
+`LAB_JOB_MODE=local` (the job runner runs the agent's code as a subprocess on the pod's GPU). Integrity
+that matters (held-out split + independent grader) is preserved; only the per-job container boundary is
+dropped — fine for a cooperative agent on public data with a rotatable, company-managed key.
+
+**On RunPod:** prefer **Secure Cloud** for keyed runs (rotate the key after); launch a **PyTorch** pod
+(cheapest viable: RTX 4090 ~$0.34/hr or A100-80 ~$1.39/hr). Then in the pod:
+```bash
+# deps: ML libs + Touchstone reqs (claude-agent-sdk) + the claude CLI on PATH
+pip install opencv-python-headless nuscenes-devkit pyquaternion shapely einops matplotlib scipy torchvision
+git clone https://github.com/WhaSukGO/LenaLab && git clone https://github.com/WhaSukGO/touchstone blueberry_ver2
+pip install -r blueberry_ver2/requirements.txt        # claude-agent-sdk, etc.
+# install the `claude` CLI on PATH (live runs need it), then:
+export LAB_JOB_MODE=local ANTHROPIC_API_KEY=<key> PYTHONPATH=LenaLab:blueberry_ver2
+cd LenaLab && python3 scripts/prep_nuscenes_occ.py ~/.cache/vo_lab/nuscenes ~/.cache/vo_lab/occ
+python3 -m vo_lab.run_occ_scaffold_calibration
+```
+> The exact dep set / `claude` CLI install on a fresh pod is best **finalized live** (image variants
+> differ) — spin a pod up, share `user@<ip>`, and it can be installed + debugged in real time rather
+> than guessed. The `LAB_JOB_MODE` switch itself is in place and verified.
+
 ## 💰 Cost reminder
 RTX 4090 ~$0.40/hr · A100-80 ~$1.39/hr (RunPod) / $2.49/hr (Lambda) · H100 ~$1.99–2.99/hr.
 One agent run ≈ $0.40–1.40 · a full domain study (n=3 + scaffold) ≈ $3–10 · the one full-scale

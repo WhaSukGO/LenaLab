@@ -44,6 +44,12 @@ docker run --rm -v "$NUSC:/data" -v "$HOME/.cache/vo_lab/bev:/out" \
 docker run --rm -v "$NUSC:/data" -v "$HOME/.cache/vo_lab/occ:/out" \
   -v "$(pwd)/scripts/prep_nuscenes_occ.py:/p.py" vo-bev:1 python /p.py /data /out
 
+echo "== 3b. harness Python deps (for the live author: claude-agent-sdk + Touchstone reqs) =="
+python3 -m pip install -r ../blueberry_ver2/requirements.txt 2>&1 | tail -1 || \
+  echo "  (install touchstone requirements manually if this failed)"
+command -v claude >/dev/null 2>&1 && echo "  claude CLI: present" || \
+  echo "  NOTE: live runs need the 'claude' CLI on PATH — install it (npm i -g the Claude Code CLI) before live runs"
+
 echo "== 4. .env (API key for live runs) =="
 [ -n "${ANTHROPIC_API_KEY:-}" ] && echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > .env || \
   echo "  (no ANTHROPIC_API_KEY set — calibration works offline; live runs need it in .env)"

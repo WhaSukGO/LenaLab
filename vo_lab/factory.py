@@ -100,9 +100,15 @@ def build_vo_implementer_harness(root: str | Path, *, author_fn=None, task=None,
     live sandboxed Claude author, leave author_fn=None then set:
         h.planner.author_fn = sdk_author(h.job_runner, h.image_registry, h.dataset_cache, ...)
     """
+    import os
+
     from lab.factory import build_implementer_harness
 
     from .agents.vo_implementer import reference_author, vo_impl_task
+
+    # LAB_JOB_MODE env overrides the caller's job_mode — lets the same run scripts use "docker"
+    # on a bare VM (nested sandbox) or "local" on a RunPod pod (the pod IS the GPU environment).
+    job_mode = os.environ.get("LAB_JOB_MODE", job_mode)
 
     return build_implementer_harness(
         root, task or vo_impl_task(), author_fn or reference_author(),
