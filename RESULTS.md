@@ -153,9 +153,38 @@ BEV) — and on BEV the lab did its hardest job twice: it caught a non-robust re
 
 ---
 
+## 7. Into 3D — camera→occupancy, and a finding that replicates
+
+The sixth domain pushes from 2D to **3D semantic occupancy** (the current AD-perception frontier):
+6 surround cameras → a **200×200×12 voxel grid** of vehicle occupancy (nuScenes), scored by per-voxel
+IoU. It also answers a science question left open by BEV: *was the "agent free-form is high-variance,
+a scaffold fixes it" finding BEV-specific, or does it generalize?*
+
+| condition | n | held-out voxel IoU | spread | pass |
+|---|---|---|---|---|
+| fixed-recipe reference | 3 | 0.099 ± 0.003 | tight | — |
+| agent **free-form** | 3 | 0.086 ± 0.024 (0.054/0.113/0.092) | **0.059** | 2/3 |
+| agent **scaffold** (authors only the net) | 2 | 0.076 / 0.084 | **0.008** | 2/2 |
+
+**It replicates.** Free-form is again high-variance (one self-sabotaging run); the scaffold collapses
+the spread **~7×** (`artifacts/occ/occ_scaffold_compare.png`), with every run leaving the locked 3D
+core byte-for-byte unmodified. So the cross-domain rule — *the agent's freedom is its variance source;
+scaffolding scopes it* — now holds in **both 2D and 3D**. Honest nuance: on 3D the scaffold buys
+*reliability*, not a higher peak (the locked core's capacity caps it below free-form's best 0.113).
+
+Prediction viz on held-out scenes: `artifacts/occ/occ_pred_heldout.png`. Full report (incl. an
+honestly-recorded 3-hour training hang + the watchdog fix):
+[`claudedocs/occ_domain_report_2026-06-19.md`](claudedocs/occ_domain_report_2026-06-19.md).
+
+→ *3D perception for autonomous driving.* **Six agent-authored domains: monocular VO, RGB-D VO, SLAM,
+KITTI stereo, BEV, and 3D occupancy.**
+
+---
+
 ## How to navigate
 - **Full chronicle (Episodes 0–20):** [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md)
 - **BEV Track-B report (the second problem class):** [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md)
+- **Occupancy report (3D, the sixth domain):** [`claudedocs/occ_domain_report_2026-06-19.md`](claudedocs/occ_domain_report_2026-06-19.md)
 - **Accurate-results report (per-claim verdicts):** [`claudedocs/accurate_results_report_2026-06-11.md`](claudedocs/accurate_results_report_2026-06-11.md)
 - **Sim-to-real technical note:** [`claudedocs/sim2real_fidelity_ladder_technical_note_2026-06-09.md`](claudedocs/sim2real_fidelity_ladder_technical_note_2026-06-09.md)
 - **How the harness works:** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md)

@@ -83,3 +83,6 @@
 - `2026-06-14T19:32:35` **[bev]** `bev-impl-001` — implement a GPU-trained surround-camera BEV network
   - measured **0.0376394** vs needed **miou >= 0.08** →  mean IoU over held-out nuScenes mini_val scenes (the primary metric)', 'missing/wrong-shape predictions score IoU 0 for that sample', 'binary-mask IoU; the solver chose its own occupancy threshold']}
   - artifact: `_bev_impl_run2/workspaces/bev-impl-001/code/main.py`
+- `2026-06-18T15:40:26` **[occ]** `occ-impl-001` — implement a camera->3D-occupancy network
+  - measured **0.0542618** vs needed **miou >= 0.0585** → xel_iou', 'caveats': ['per-sample mean 3D voxel IoU over held-out nuScenes mini_val scenes', 'box-derived vehicle occupancy (not dense semantic Occ3D)', 'missing/wrong-shape predictions score IoU 0']}
+  - artifact: `_occ_impl_run1/workspaces/occ-impl-001/code/main.py`
