@@ -1,20 +1,21 @@
-# LenaLab — a computer-vision research lab where agents implement, and an independent verifier judges
+# LenaLab — an AI agent that researches, builds, and trains computer-vision algorithms
 
 *(Named for Lena/Lenna, the canonical computer-vision test image.)*
 
-LenaLab is the **solver / research-team** half of a generator⟂verifier split. LLM "expert"
-agents are given a well-specified vision problem and produce a solution — by **authoring
-algorithm code from scratch** (Track B) or **tuning a vetted recipe** (Track A) — and a
-result counts as "done" only when an **independent** evaluator measures it on a **held-out**
-split the solver never saw and cannot game, against a fixed oracle.
+LenaLab hands an AI agent a real computer-vision problem and lets it work like a researcher:
+**analyze** the data and constraints, **research** an approach, **implement** the algorithm —
+and **train** it on the GPU, for the learned ones — then confirm it actually **generalizes** to
+scenes it never saw. Across **six problem classes** — visual odometry, SLAM, multi-camera BEV,
+and 3D occupancy — the same agent reasons through the task, writes the code, trains the network,
+and gets a working result.
 
-It does **not** reimplement a verifier: it imports **Touchstone** (the verification spine)
-and adds the vision domain. The harness is domain-agnostic (a domain is a plugin behind
-`{dataset, oracle/metric, held-out}`), and it now spans **six agent-authored domains** —
-from ego-motion (VO/SLAM) to multi-camera **perception** (BEV) and **3D occupancy** — proving the
-verification discipline generalizes across problem classes, not just one task. The Python package is `vo_lab`.
+The numbers here are trustworthy because every one is measured on **held-out data the agent never
+trained on** — so a result only counts when it genuinely generalizes, and the record stays honest
+(one early over-claim was retracted, the rest variance-checked across repeated runs). That held-out
+evaluation builds on **Touchstone**; the agent supplies the research and the engineering. The Python
+package is `vo_lab`.
 
-### Six domains, one discipline (agent implements · independent verifier judges · held-out data)
+### Six problem classes the agent analyzed, built, trained, and got working (on unseen data)
 
 | Domain | What the agent authored | Held-out result | Verdict |
 |---|---|---|---|

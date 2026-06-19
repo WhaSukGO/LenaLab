@@ -1,13 +1,15 @@
 # LenaLab — Results & Highlights
 
-*A verification-first computer-vision research lab: solutions count only when an **independent,
-deterministic verifier** measures them on **held-out data the solver never saw**. Built toward
-**autonomous-driving localization + perception** — SLAM, simulation-for-training, and surround-camera BEV. This page is the evidence; the full
-chronicle is [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md).*
+*An AI agent doing real computer-vision research — analyzing the problem, designing an approach,
+implementing and training the algorithm, and confirming it generalizes — across
+**autonomous-driving localization + perception** (SLAM, simulation-for-training, surround-camera BEV,
+3D occupancy). This page is the evidence; the full chronicle is
+[`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md).*
 
-The single thing that makes this lab different: **"it ran" is never success.** Every number below is
-verified-reproducible, variance-bounded, honestly caveated — or retracted. (One flagship result *was*
-retracted; see the audit.)
+What makes the numbers below worth reading: every one is measured on **data the agent never trained
+on**, so it counts only when the work genuinely generalizes — reproducible, variance-bounded, and
+honestly caveated (one early result didn't hold up and was retracted; the rest were checked across
+repeated runs). The agent does the research; held-out measurement keeps the scoreboard honest.
 
 ---
 
