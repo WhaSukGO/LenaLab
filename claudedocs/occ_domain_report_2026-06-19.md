@@ -65,21 +65,18 @@ correct surround flip augmentation, training, and calibration; the agent authors
 (`build_encoder` + `build_occ_head`). Calibration: scaffold reference 0.0664 → bar 0.051, trivial net
 0.008 REJECTED, gate OPEN.
 
-| condition | n | held-out voxel IoU | range | pass |
+| condition | n | held-out voxel IoU | mean ± std | pass |
 |---|---|---|---|---|
-| reference | 3 | 0.096 / 0.103 / 0.099 | 0.007 | — |
-| agent free-form | 3 | 0.054 / 0.113 / 0.092 | **0.059** | 2/3 |
-| agent **scaffold** | 2 | 0.076 / 0.084 | **0.008** | **2/2** |
+| reference | 3 | 0.096 / 0.103 / 0.099 | 0.099 ± 0.003 | — |
+| agent free-form | 3 | 0.054 / 0.113 / 0.092 | 0.086 ± **0.024** | 2/3 |
+| agent **scaffold** | 3 | 0.076 / 0.084 / 0.076 | **0.079 ± 0.004** | **3/3** |
 
-**The variance collapses again** — the two completed scaffold runs sit within a **0.008** band vs
-free-form's **0.059** spread (**~7× tighter**), both clear the bar, and each left the locked
+**The variance collapses again** — at a clean n=3, the scaffold runs cluster at std **0.004** vs
+free-form's **0.024** (**~6× tighter**), all three clear the bar, and each left the locked
 `occ_core.py` byte-for-byte unmodified (diff-verified). So the BEV finding **replicates on 3D**: the
 agent's free-form variance is its design latitude over the fragile geometry/augmentation, and locking
-those makes it reliable.
-
-*(n=2, not 3: scaffold run 1 was lost to the hang in §7 and a redo was cut short to commit safely
-before a planned machine shutdown. Two tight passing runs already show the collapse; a clean n=3 redo
-is a trivial follow-up — `python -m vo_lab.run_occ_scaffold_implement 0.051` — left for resume.)*
+those makes it reliable. (Scaffold run 1 was lost to the §7 hang; the n=3 here is two original runs +
+a hang-protected redo after the job-timeout fix.)
 
 **An honest nuance (where occupancy differs from BEV).** On BEV the scaffold also *lifted* the mean to
 reference quality. Here it makes results **reliable but not higher** than free-form's best run (0.113):

@@ -160,17 +160,18 @@ The sixth domain pushes from 2D to **3D semantic occupancy** (the current AD-per
 IoU. It also answers a science question left open by BEV: *was the "agent free-form is high-variance,
 a scaffold fixes it" finding BEV-specific, or does it generalize?*
 
-| condition | n | held-out voxel IoU | spread | pass |
+| condition | n | held-out voxel IoU | std | pass |
 |---|---|---|---|---|
-| fixed-recipe reference | 3 | 0.099 ± 0.003 | tight | — |
-| agent **free-form** | 3 | 0.086 ± 0.024 (0.054/0.113/0.092) | **0.059** | 2/3 |
-| agent **scaffold** (authors only the net) | 2 | 0.076 / 0.084 | **0.008** | 2/2 |
+| fixed-recipe reference | 3 | 0.099 | 0.003 | — |
+| agent **free-form** | 3 | 0.086 (0.054/0.113/0.092) | **0.024** | 2/3 |
+| agent **scaffold** (authors only the net) | 3 | 0.079 (0.076/0.084/0.076) | **0.004** | 3/3 |
 
 **It replicates.** Free-form is again high-variance (one self-sabotaging run); the scaffold collapses
-the spread **~7×** (`artifacts/occ/occ_scaffold_compare.png`), with every run leaving the locked 3D
-core byte-for-byte unmodified. So the cross-domain rule — *the agent's freedom is its variance source;
-scaffolding scopes it* — now holds in **both 2D and 3D**. Honest nuance: on 3D the scaffold buys
-*reliability*, not a higher peak (the locked core's capacity caps it below free-form's best 0.113).
+the variance **~6×** at a clean n=3 (`artifacts/occ/occ_scaffold_compare.png`), with all 3 runs passing
+and each leaving the locked 3D core byte-for-byte unmodified. So the cross-domain rule — *the agent's
+freedom is its variance source; scaffolding scopes it* — now holds in **both 2D and 3D**. Honest
+nuance: on 3D the scaffold buys *reliability*, not a higher peak (the locked core's capacity caps it
+below free-form's best 0.113).
 
 Prediction viz on held-out scenes: `artifacts/occ/occ_pred_heldout.png`. Full report (incl. an
 honestly-recorded 3-hour training hang + the watchdog fix):
