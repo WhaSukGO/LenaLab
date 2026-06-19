@@ -57,6 +57,23 @@ The agent *can* author real 3D occupancy (run 2 at 0.113 beats the reference), b
 one run self-sabotaged. The free-form variance (std 0.024) is **~8× the reference's** (0.003). This is
 the **same signature as BEV**, now on a harder 3D task: the finding is not BEV-specific.
 
+### 5a. What "the agent trains itself" actually looks like
+
+The agent doesn't just emit a model — it **authors a training pipeline and improves a network with it**.
+Run 2's agent wrote a **two-stage curriculum**: 40 epochs on 90% of the data, validating on the held-out
+10% each checkpoint (keeping the best), then a threshold sweep, then 8 fine-tune epochs on 100%. Its own
+training trajectory (`artifacts/occ/agent_training_curve.png`):
+
+![Agent training: loss falls as its validation mIoU climbs, then fine-tune](../artifacts/occ/agent_training_curve.png)
+
+This is implement→**train**→self-verify→improve in one session: loss 1.78→0.64, the agent's val mIoU
+climbing 0.05→0.33 (★ = each new best it kept). Two honest notes: (1) the agent's *own* validation
+(0.335) is far rosier than the harness's **held-out grade (0.092)** — precisely why the independent
+verifier exists; self-assessment overstates, the held-out keeps it honest. (2) In the **scaffold** runs
+(§6) the harness owns this training loop and the agent authors only the network — so "the agent trains
+itself" is fully true in *free-form*, and deliberately scoped in the *scaffold* (that's the point of the
+scaffold: take away the freedom that drives variance).
+
 ## 6. Improve via scaffold (evidence-justified), n=3
 
 Because the variance replicated, the scaffold fix is justified by evidence, not assumed. The locked
