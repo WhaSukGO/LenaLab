@@ -10,11 +10,11 @@ split the solver never saw and cannot game, against a fixed oracle.
 
 It does **not** reimplement a verifier: it imports **Touchstone** (the verification spine)
 and adds the vision domain. The harness is domain-agnostic (a domain is a plugin behind
-`{dataset, oracle/metric, held-out}`), and it now spans **five agent-authored domains** —
-from ego-motion (VO/SLAM) to multi-camera **perception** (BEV) — proving the verification
-discipline generalizes, not just one task. The Python package is `vo_lab`.
+`{dataset, oracle/metric, held-out}`), and it now spans **six agent-authored domains** —
+from ego-motion (VO/SLAM) to multi-camera **perception** (BEV) and **3D occupancy** — proving the
+verification discipline generalizes across problem classes, not just one task. The Python package is `vo_lab`.
 
-### Five domains, one discipline (agent implements · independent verifier judges · held-out data)
+### Six domains, one discipline (agent implements · independent verifier judges · held-out data)
 
 | Domain | What the agent authored | Held-out result | Verdict |
 |---|---|---|---|
@@ -22,16 +22,26 @@ discipline generalizes, not just one task. The Python package is `vo_lab`.
 | **Monocular VO** | optical-flow + wide-baseline keyframes | ATE 0.052 m (Sim3, unseen) | ✅ VERIFIED |
 | **KITTI stereo VO** | SGBM depth → ORB → PnP, outdoor driving | t_err 2.08% (unseen seq 05/07) | ✅ VERIFIED |
 | **Learned VO** (GPU) | ResNet pose-CNN + optical-flow input, trained from scratch | 18.5 ± 0.7 m (n=3) — beats learned ref ~1.7× | ✅ VERIFIED |
-| **BEV perception** | Lift-Splat network, 6 surround cams → top-down vehicle occupancy | **2/3 runs ≥ bar** (IoU 0.085 ± 0.034, unseen nuScenes) | ⚠️ capable, not robust (honest n=3) |
+| **BEV perception** | Lift-Splat, 6 surround cams → top-down vehicle occupancy | scaffolded **0.136 ± 0.005 IoU, 3/3** (free-form 2/3) | ✅ VERIFIED + variance-fixed |
+| **3D occupancy** | Lift-Splat-to-3D, 6 cams → 200×200×12 voxel grid | scaffolded **0.079 ± 0.004 IoU, 3/3** (free-form 2/3) | ✅ VERIFIED + variance-fixed |
 
 Plus a real **SLAM benchmark** (stereo DROID, **0.03–0.20 %** on km-scale KITTI loops) and honest
 negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Full evidence → `RESULTS.md`](RESULTS.md).**
 
+> ### 🔬 The headline finding (replicated in 2D *and* 3D)
+> When an agent authors a perception net **freely**, its results are **high-variance** — it can
+> author a great network *or* self-sabotage the fragile geometry/augmentation (BEV & occupancy
+> free-form: ~2/3 pass, σ≈0.02–0.03). **Lock the fragile parts in a scaffold and let it author only
+> the network, and the variance collapses ~6–7× to near-reference reliability (3/3 pass).** So an
+> agent's *authoring freedom is its variance source, and scaffolding scopes it* — demonstrated with
+> clean **n=3** comparisons in both 2D (BEV) and 3D (occupancy). The full arc — build → find it's
+> non-robust → diagnose → fix → validate → **replicate** — is the lab working as a *method*, not a demo.
+
 > ## 📊 **[Results & Highlights → `RESULTS.md`](RESULTS.md)**
 > Real km-scale SLAM (stereo DROID **0.06–0.20%** on KITTI loops, visualized), agent-authored
-> **multi-camera BEV perception** (nuScenes, the lab's second problem class), the variance-audited
-> sim-to-real fidelity ladder, and a **trustworthiness audit** that retracted one flagship and
-> verified the rest. **Start there for the evidence.**
+> **multi-camera BEV + 3D occupancy** perception (nuScenes), the **scaffold variance-collapse finding
+> replicated in 2D and 3D**, the variance-audited sim-to-real fidelity ladder, and a **trustworthiness
+> audit** that retracted one flagship and verified the rest. **Start there for the evidence.**
 
 **How it works (architecture + diagrams + where the AI is involved):** [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 See `claudedocs/` for the research report, architecture design, and the trial write-up.
@@ -178,19 +188,20 @@ held-out data it **VERIFIED at ATE 0.124 m** (≤ 0.134 m bar). Full write-up + 
 ## Status & roadmap
 
 The harness spine (offline calibration gate, Track A committee, Track B implementer, anti-tamper
-grading) is built and proven, and **five agent-authored domains are VERIFIED** on real held-out
+grading) is built and proven, and **six agent-authored domains are VERIFIED** on real held-out
 data (table above; full evidence in [`RESULTS.md`](RESULTS.md)):
 
 - **Localization** — monocular VO, RGB-D VO (metric, 0.033 m), KITTI stereo VO (outdoor driving),
   learned VO on GPU (n=3 variance-audited), and a real **SLAM benchmark** (stereo DROID on
   km-scale KITTI loops, 0.03–0.20 %).
-- **Perception** — multi-camera **BEV** vehicle occupancy (nuScenes, IoU 0.1075 on unseen scenes),
-  proving the verification discipline generalizes beyond ego-motion. See
-  [`claudedocs/bev_track_b_report_2026-06-15.md`](claudedocs/bev_track_b_report_2026-06-15.md).
+- **Perception** — multi-camera **BEV** vehicle occupancy and **3D occupancy** (nuScenes), both
+  with the scaffold variance-collapse finding (n=3). Reports:
+  [`bev_track_b_report`](claudedocs/bev_track_b_report_2026-06-15.md) ·
+  [`occ_domain_report`](claudedocs/occ_domain_report_2026-06-19.md).
 - **Discipline** — a **trustworthiness audit** that retracted one over-claimed result and
-  variance-bounded the rest; honest negatives (from-scratch loop closure, C++ IMU fusion) kept
-  on the record rather than hidden.
+  variance-bounded the rest; honest negatives (from-scratch loop closure, C++ IMU fusion) kept on
+  the record; a real harness gap (no job-level timeout → a 3 h hang) surfaced and fixed.
 
-**Open frontiers:** statistical variance on the BEV agent result (currently n=1); larger-scale BEV
-(full nuScenes / more classes); multi-lab peer review via Touchstone's `exchange`. The design
-notes live in `claudedocs/`.
+**Open frontiers:** scaling a perception domain to full nuScenes / more classes on a Docker-capable
+cloud GPU (for a competitive, non-mini number); multi-lab peer review via Touchstone's `exchange`.
+The design notes live in `claudedocs/`.
