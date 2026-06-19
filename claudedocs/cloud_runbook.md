@@ -23,27 +23,24 @@ zero changes**. A RunPod *pod* is itself a container (nested Docker is fiddly), 
    - **Routine lab work:** 1× **RTX 4090 / L40S (24–48 GB)** — runs everything we've built.
    - **Full-scale headline number:** 1× **A100-80GB or H100**.
    - Choose an image that already has **NVIDIA driver + Docker + nvidia-container-toolkit** (Lambda's default + RunPod "PyTorch" / GCP "Deep Learning VM" all do).
-5. **Make your Touchstone spine reachable.** The lab needs the private `blueberry_ver2` repo next to it.
-   Either have its **git URL** ready, or be ready to `rsync` it up. (It's your private repo — I can't fetch it.)
-6. **Have two secrets ready to paste on the VM:**
-   - `VER2_REPO` = git URL of `blueberry_ver2` (from step 5)
-   - `ANTHROPIC_API_KEY` = your company key (for live/billed runs; calibration runs without it)
-7. **`ssh` into the VM** and run the bring-up (below). When done for the session, **stop/terminate the
+5. **One secret to paste on the VM:** `ANTHROPIC_API_KEY` = your company key (for live/billed runs;
+   calibration runs without it). The Touchstone spine (`github.com/WhaSukGO/touchstone`) is **public**,
+   so the bring-up clones it automatically — nothing for you to do there.
+6. **`ssh` into the VM** and run the bring-up (below). When done for the session, **stop/terminate the
    instance** (you only pay while it runs).
 
-That's the whole human side: *account → billing → SSH key → launch a GPU VM → ssh in → two secrets → run script → stop when done.*
+That's the whole human side: *account → billing → SSH key → launch a GPU VM → ssh in → paste API key → run script → stop when done.*
 
 ---
 
 ## 🤖 Bring-up (on the VM, scripted)
 
 ```bash
-export VER2_REPO=<git url of blueberry_ver2>          # from step 5
-export ANTHROPIC_API_KEY=<company key>                 # for live runs
+export ANTHROPIC_API_KEY=<company key>                 # for live runs (calibration works without it)
 curl -fsSL https://raw.githubusercontent.com/WhaSukGO/LenaLab/main/scripts/cloud/bringup_lenalab.sh -o bringup.sh
 bash bringup.sh
 ```
-The script: checks GPU+Docker → clones LenaLab + blueberry_ver2 (siblings) → builds the `vo-gpu-torch`
+The script: checks GPU+Docker → clones LenaLab + the Touchstone spine (siblings) → builds the `vo-gpu-torch`
 and `vo-bev` images → downloads nuScenes mini (public, ~4 GB) → preps the BEV + occupancy caches →
 writes `.env` → runs an offline calibration smoke test. ~10–15 min the first time.
 

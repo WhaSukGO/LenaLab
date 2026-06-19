@@ -7,13 +7,15 @@
 #   - Docker + NVIDIA Container Toolkit (`docker run --gpus all ... nvidia-smi` works)
 #   - git, curl, python3
 #
-# YOU MUST SET THESE FIRST (export before running):
-#   export VER2_REPO=<git url of your Touchstone/blueberry_ver2 spine>     # or rsync it up yourself
-#   export ANTHROPIC_API_KEY=<your company key>                            # for live (billed) runs
-# Optional: export LENALAB_REPO=<git url of LenaLab>   (defaults to the public repo)
+# YOU MUST SET THIS FIRST (export before running), for live (billed) runs:
+#   export ANTHROPIC_API_KEY=<your company key>          # calibration works without it
+# Optional overrides (both default to the public repos):
+#   export VER2_REPO=<git url of the Touchstone spine>   (default: WhaSukGO/touchstone)
+#   export LENALAB_REPO=<git url of LenaLab>
 set -euo pipefail
 
 LENALAB_REPO="${LENALAB_REPO:-https://github.com/WhaSukGO/LenaLab.git}"
+VER2_REPO="${VER2_REPO:-https://github.com/WhaSukGO/touchstone}"   # public — clones without auth
 ROOT="${ROOT:-$HOME/devel/whasuk}"
 mkdir -p "$ROOT"; cd "$ROOT"
 
@@ -23,10 +25,7 @@ docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi -L
 
 echo "== 1. clone LenaLab + the Touchstone spine (siblings) =="
 [ -d LenaLab ] || git clone "$LENALAB_REPO" LenaLab
-if [ ! -d blueberry_ver2 ]; then
-  : "${VER2_REPO:?set VER2_REPO to your Touchstone/blueberry_ver2 git url, or rsync it to $ROOT/blueberry_ver2}"
-  git clone "$VER2_REPO" blueberry_ver2
-fi
+[ -d blueberry_ver2 ] || git clone "$VER2_REPO" blueberry_ver2   # the Touchstone spine (public)
 cd LenaLab
 
 echo "== 2. build the GPU sandbox image (torch+cuda+cv2) and the prep image (nuscenes-devkit) =="
