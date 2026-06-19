@@ -41,7 +41,7 @@ def occ_impl_task(threshold: float = 0.05, *, train_max=None, test_max=None) -> 
     from ..plugins.occ_nuscenes import occ_datasets
     return ImplementationTask(
         description=OCC_TASK_DESCRIPTION, framework=_GPU_FW,
-        entry_command='python3 "$LAB_CODE/main.py"', eval_command='python3 "$LAB_CODE/eval.py"',
+        entry_command='timeout 3600 python3 "$LAB_CODE/main.py"', eval_command='python3 "$LAB_CODE/eval.py"',
         eval_code=_OCC_EVAL_CODE, metric="miou", op=">=", threshold=threshold,
         datasets=occ_datasets(), entry_filename="main.py")
 
@@ -93,7 +93,7 @@ def occ_impl_task_scaffold(threshold: float = 0.06, *, train_max=None, test_max=
     from ..plugins.occ_nuscenes import occ_datasets
     return ImplementationTask(
         description=OCC_SCAFFOLD_DESCRIPTION, framework=_GPU_FW,
-        entry_command='python3 "$LAB_CODE/occ_core.py"', eval_command='python3 "$LAB_CODE/eval.py"',
+        entry_command='timeout 3600 python3 "$LAB_CODE/occ_core.py"', eval_command='python3 "$LAB_CODE/eval.py"',
         eval_code=_OCC_EVAL_CODE, metric="miou", op=">=", threshold=threshold,
         datasets=occ_datasets(), entry_filename="model.py")
 

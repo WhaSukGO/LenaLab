@@ -53,7 +53,7 @@ def bev_impl_task(threshold: float = 0.12, *, train_max=None, test_max=None) -> 
     return ImplementationTask(
         description=BEV_TASK_DESCRIPTION,
         framework=_GPU_FW,
-        entry_command='python3 "$LAB_CODE/main.py"',
+        entry_command='timeout 3600 python3 "$LAB_CODE/main.py"',   # job timeout: a hung training kills itself (no GPU-hogging zombie)
         eval_command='python3 "$LAB_CODE/eval.py"',
         eval_code=_BEV_EVAL_CODE,
         metric="miou", op=">=", threshold=threshold,
@@ -121,7 +121,7 @@ def bev_impl_task_scaffold(threshold: float = 0.10, *, train_max=None, test_max=
     return ImplementationTask(
         description=BEV_SCAFFOLD_DESCRIPTION,
         framework=_GPU_FW,
-        entry_command='python3 "$LAB_CODE/bev_core.py"',     # runs the LOCKED core (imports model.py)
+        entry_command='timeout 3600 python3 "$LAB_CODE/bev_core.py"',   # job timeout + runs the LOCKED core (imports model.py)
         eval_command='python3 "$LAB_CODE/eval.py"',
         eval_code=_BEV_EVAL_CODE,
         metric="miou", op=">=", threshold=threshold,
