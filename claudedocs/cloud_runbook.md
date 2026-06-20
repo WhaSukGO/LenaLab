@@ -3,6 +3,12 @@
 Goal: run the agent research lab on a rented GPU (bigger VRAM, no contention, parallel experiments).
 API cost is company-backed, so the only spend is GPU-hours (≈ **$0.40–1.40/hr**; a full domain study ≈ **$3–10**).
 
+> ✅ **Validated end-to-end (2026-06-20)** on a RunPod RTX 4090 in `local` mode: deps + `claude` CLI
+> installed, occupancy cache prepped, calibration gate OPEN, and a live agent run **VERIFIED at
+> held-out IoU 0.0701** — total ~$2–3, pod then terminated via the RunPod API to $0.
+> **Billing note:** *stopping* a pod still bills storage ($0.20/GB·mo container, $0.07/GB·mo network
+> volume); only **terminate** (delete) reaches $0. Terminate the pod when done.
+
 ## The one architecture fact that decides everything
 The lab sandboxes each agent job with `docker run --gpus all` (a real Docker daemon + GPU). So target a
 **bare GPU VM with Docker + NVIDIA Container Toolkit** — then the lab runs **exactly as it does locally,
