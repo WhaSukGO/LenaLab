@@ -5,9 +5,9 @@
 LenaLab hands an AI agent a real computer-vision problem and lets it work like a researcher:
 **analyze** the data and constraints, **research** an approach, **implement** the algorithm —
 and **train** it on the GPU, for the learned ones — then confirm it actually **generalizes** to
-scenes it never saw. Across **six problem classes** — visual odometry, SLAM, multi-camera BEV,
-and 3D occupancy — the same agent reasons through the task, writes the code, trains the network,
-and gets a working result.
+scenes it never saw. Across **seven problem classes** — visual odometry, SLAM, multi-camera BEV,
+3D occupancy, and (off the road) static multi-camera floor occupancy — the same agent reasons
+through the task, writes the code, trains the network, and gets a working result.
 
 The numbers here are trustworthy because every one is measured on **held-out data the agent never
 trained on** — so a result only counts when it genuinely generalizes, and the record stays honest
@@ -15,7 +15,7 @@ trained on** — so a result only counts when it genuinely generalizes, and the 
 evaluation builds on **Touchstone**; the agent supplies the research and the engineering. The Python
 package is `vo_lab`.
 
-### Six problem classes the agent analyzed, built, trained, and got working (on unseen data)
+### Seven problem classes the agent analyzed, built, trained, and got working (on unseen data)
 
 | Domain | What the agent authored | Held-out result | Verdict |
 |---|---|---|---|
@@ -25,6 +25,7 @@ package is `vo_lab`.
 | **Learned VO** (GPU) | ResNet pose-CNN + optical-flow input, trained from scratch | 18.5 ± 0.7 m (n=3) — beats learned ref ~1.7× | ✅ VERIFIED |
 | **BEV perception** | Lift-Splat, 6 surround cams → top-down vehicle occupancy | scaffolded **0.136 ± 0.005 IoU, 3/3** (free-form 2/3) | ✅ VERIFIED + variance-fixed |
 | **3D occupancy** | Lift-Splat-to-3D, 6 cams → 200×200×12 voxel grid | scaffolded **0.079 ± 0.004 IoU, 3/3** (free-form 2/3) | ✅ VERIFIED + variance-fixed |
+| **Smart-space floor occ** *(off-road)* | IPM + temporal bg-sub, 19 static cams → top-down floor map | **0.39–0.44 IoU** (2/2, unseen-time) — **~2× the IPM reference** | ✅ VERIFIED |
 
 Plus a real **SLAM benchmark** (stereo DROID, **0.03–0.20 %** on km-scale KITTI loops) and honest
 negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Full evidence → `RESULTS.md`](RESULTS.md).**
@@ -194,7 +195,7 @@ held-out data it **VERIFIED at ATE 0.124 m** (≤ 0.134 m bar). Full write-up + 
 ## Status & roadmap
 
 The harness spine (offline calibration gate, Track A committee, Track B implementer, anti-tamper
-grading) is built and proven, and **six agent-authored domains are VERIFIED** on real held-out
+grading) is built and proven, and **seven agent-authored domains are VERIFIED** on real held-out
 data (table above; full evidence in [`RESULTS.md`](RESULTS.md)):
 
 - **Localization** — monocular VO, RGB-D VO (metric, 0.033 m), KITTI stereo VO (outdoor driving),
@@ -204,6 +205,10 @@ data (table above; full evidence in [`RESULTS.md`](RESULTS.md)):
   with the scaffold variance-collapse finding (n=3). Reports:
   [`bev_track_b_report`](claudedocs/bev_track_b_report_2026-06-15.md) ·
   [`occ_domain_report`](claudedocs/occ_domain_report_2026-06-19.md).
+- **Off-road perception** — **static multi-camera floor occupancy** (NVIDIA Physical AI Smart
+  Spaces warehouse): IPM + agent-invented temporal background subtraction, **0.39–0.44 held-out
+  IoU, ~2× the reference**, per-space self-verification ("a map, not a camera"). Report:
+  [`smartspace_domain_report`](claudedocs/smartspace_domain_report_2026-06-21.md).
 - **Discipline** — a **trustworthiness audit** that retracted one over-claimed result and
   variance-bounded the rest; honest negatives (from-scratch loop closure, C++ IMU fusion) kept on
   the record; a real harness gap (no job-level timeout → a 3 h hang) surfaced and fixed.

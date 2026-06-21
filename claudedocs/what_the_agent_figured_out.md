@@ -62,6 +62,18 @@ On a **provably-unseen** procedural-synthetic world (no chance of training-data 
 authored a stereo VO from scratch (SGBM disparity → FAST+KLT → PnP-RANSAC). **Result: 1.20% — it beat
 the reference (1.91%) on data nothing could have memorized.** The skill is real, not recalled.
 
+### 9. It exploited that the cameras don't move (off-road, static multi-camera)
+On the seventh domain — static overhead warehouse cameras → a top-down floor-occupancy map — the agent
+did more than re-derive the geometry. It **noticed the cameras are fixed** and built a method around that
+fact: a **temporal background-subtraction** front-end (median background, differenced per frame, so moving
+people/forklifts pop out as a 3-channel difference image alongside RGB), multi-height IPM fused mean+max
+across the 19 cameras, focal loss for the ~0.4% positive rate, and **adaptive top-K inference** (predict
+each frame's *expected* number of occupied cells by rank, instead of a fixed probability threshold that
+drifts on unseen frames). **Result: 0.39–0.44 held-out floor IoU, both runs VERIFIED — ~2× the
+hand-written IPM reference (~0.22), graded on unseen-time frames.** The insight that a static rig makes
+*temporal* background modeling free is exactly the move that beat a generic geometric baseline — and it
+came after the agent's first instinct (the driving Lift-Splat) was shown wrong for fixed cameras.
+
 ---
 
 ## What this adds up to

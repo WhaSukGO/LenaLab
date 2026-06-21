@@ -184,6 +184,33 @@ KITTI stereo, BEV, and 3D occupancy.**
 
 ---
 
+## 8. Off the road — a self-verifying top-down map of a space
+
+The seventh domain leaves autonomous driving: **static multi-camera floor occupancy** (NVIDIA Physical
+AI Smart Spaces warehouse — 19 fixed overhead cameras → a top-down floor-occupancy map, 206×203 @ 0.5 m).
+Held-out = **per-space self-verification**: train on the scene's first 70 % of time, grade on the last
+30 % (unseen time). This makes the deployable claim literal — *stand up and verify a model for THIS
+space* ("a map, not a camera"; occupancy is privacy-preserving by construction).
+
+| condition | held-out floor IoU | vs bar 0.166 |
+|---|---|---|
+| from-scratch **IPM reference** (3 seeds) | ~0.22 (0.216/0.232/~0.22) | — |
+| agent **free-form** | **0.4378 / 0.3942** | **2/2 VERIFIED** |
+
+**The agent beat the baseline I wrote** (~1.8–2×), on a brand-new non-driving domain, graded on frames
+it never saw. A real geometry finding came first: the driving **Lift-Splat failed** on static overhead
+cameras (~3 % of its frustum landed in-grid, no spatial learning) — the agent's IPM-based approach, with
+**temporal background subtraction** it invented from noticing the cameras don't move, fixed it
+(`artifacts/smartspace/smartspace_map_vs_camera.png`, `agent_smartspace_model.py`). Honest scope: **one
+scene, two free-form runs (no n=3/scaffold here), per-space (not cross-space) self-verification**; the
+first run's model was lost to an early auto-terminate (supervisor since made artifact-safe). Full report:
+[`claudedocs/smartspace_domain_report_2026-06-21.md`](claudedocs/smartspace_domain_report_2026-06-21.md).
+
+→ *Perception beyond driving.* **Seven agent-authored domains** — the seventh proving the loop carries
+to a different problem class, where the agent's research (not a leaderboard) is the edge.
+
+---
+
 ## How to navigate
 - **What the agent figured out (its design decisions, in its own words):** [`claudedocs/what_the_agent_figured_out.md`](claudedocs/what_the_agent_figured_out.md)
 - **Full chronicle (Episodes 0–20):** [`claudedocs/blog_agent_in_a_lab_2026-06-03.md`](claudedocs/blog_agent_in_a_lab_2026-06-03.md)
