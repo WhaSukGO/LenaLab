@@ -45,6 +45,11 @@ negatives kept on the record (from-scratch loop closure, C++ IMU fusion). **[Ful
 > replicated in 2D and 3D**, the variance-audited sim-to-real fidelity ladder, and a **trustworthiness
 > audit** that retracted one flagship and verified the rest. **Start there for the evidence.**
 
+> ## 🖼️ **[Visual Gallery → `GALLERY.md`](GALLERY.md)**
+> A picture tour across all seven domains — feature tracking on driving video, dense SLAM maps, BEV
+> before/after, 3D occupancy, the agent's own training curve, and the "map, not a camera" warehouse
+> result — with animated fly-throughs and sweeps. **Start there for the pictures.**
+
 > ## 🧠 **[What the agent figured out → `claudedocs/what_the_agent_figured_out.md`](claudedocs/what_the_agent_figured_out.md)**
 > The agent's actual design decisions, in its own words — depth for metric scale, a stable linear pose
 > graph after a divergence, an offset-anchoring fix for sensor fusion, optical-flow input for a learned
