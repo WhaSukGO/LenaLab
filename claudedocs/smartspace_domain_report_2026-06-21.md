@@ -17,6 +17,10 @@ a camera"** (occupancy is privacy-preserving by construction) and **"trust on da
 unique, so a model that *self-verifies* on a brand-new space is the unlock). This domain makes the second
 literal: the held-out gate **is** the per-space "trust on day one" claim.
 
+![warehouse demo (animated)](../artifacts/smartspace/warehouse_demo.gif)
+*▶️ The domain in motion: a fixed warehouse camera with agent detections (green boxes) → the live
+top-down floor-occupancy map (agents as bright dots), across the held-out (unseen-time) window.*
+
 ## 2. The task
 
 **NVIDIA Physical AI Smart Spaces** (AI City `MTMC_Tracking_2026`, `Warehouse_000`): 19 fixed overhead

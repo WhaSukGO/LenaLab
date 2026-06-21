@@ -66,6 +66,12 @@ then a fine-tune stage. This is the agent **improving a network by training it**
 
 ## 🏭 Smart-space floor occupancy (the 7th domain — off the road)
 
+### Warehouse demo — camera → live floor map ▶️ *(animated)*
+![warehouse demo](artifacts/smartspace/warehouse_demo.gif)
+A static warehouse camera with **agent detections** drawn (green boxes, left) beside the **live top-down
+floor-occupancy map** (right, agents as bright dots) — swept across the held-out (unseen-time) window.
+This is the domain's job: turn fixed cameras into a moving "what's where" map of the space.
+
 ### "A map, not a camera"
 ![map not a camera](artifacts/smartspace/smartspace_map_vs_camera.png)
 Three of the 19 fixed warehouse cameras (left) → a **top-down floor-occupancy map** (right): the dots are

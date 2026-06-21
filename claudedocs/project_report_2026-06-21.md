@@ -136,6 +136,10 @@ The most recent work (and a good illustration of the whole loop):
 4. **Result.** From-scratch IPM reference ~0.22; the **free-form agent hit 0.44 and 0.39 (2/2 VERIFIED),
    ~2× the reference**, graded on unseen-time frames — by inventing static-camera-specific techniques.
 
+![warehouse demo (animated)](../artifacts/smartspace/warehouse_demo.gif)
+*▶️ Warehouse demo: a fixed camera with agent detections (green) → the live top-down floor-occupancy map
+(agents as bright dots), swept across the held-out window — the domain's job in motion.*
+
 ![map, not a camera](../artifacts/smartspace/smartspace_map_vs_camera.png)
 *"A map, not a camera": three of the 19 fixed warehouse cameras → a top-down floor-occupancy map (right,
 dots = people/forklifts/robots) — the privacy-preserving output the agent learned and verified.*
