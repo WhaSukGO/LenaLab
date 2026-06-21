@@ -51,6 +51,26 @@ Plus a real **SLAM benchmark** (stereo DROID, 0.03–0.20 % on km-scale KITTI lo
 autonomous committee** (a multi-expert agent program that improved held-out ATE 26 % over a lineage of
 experiments — proving the lab is a self-directing research *program*, not just single-shot authoring).
 
+### Pictures (held-out, every one)
+
+![feature tracking on driving video](../artifacts/slam_benchmark/tracking_seq07_strip.png)
+*The agent's VO tracking features (flow trails) across a KITTI street — the motion front-end.
+Animated: `artifacts/slam_benchmark/tracking_seq07.mp4`.*
+
+![dense SLAM loop map](../artifacts/slam_benchmark/droid_map_seq07.png)
+*Stereo DROID-SLAM reconstructing a km-scale KITTI loop (top-down height-colored + 3D); the trajectory
+(red) closes the loop. Build animation: `artifacts/slam_benchmark/loop_build_seq07.gif`.*
+
+![BEV before/after](../artifacts/bev/bev_before_after.png)
+*BEV vehicle occupancy: 6 surround cams (left) → **BEFORE** (reference) vs **AFTER** (agent) vs held-out
+GT. Green=correct, red=missed, blue=false. The agent ~doubles IoU on unseen scenes. Sweep:
+`artifacts/bev/bev_sweep_scene0103.gif`.*
+
+![3D occupancy pred vs GT](../artifacts/occ/occ_pred_heldout.png)
+*3D occupancy: cameras → held-out voxel GT vs the agent's prediction (height-colored + TP/FN/FP).*
+
+> 🖼️ **Full picture tour across all seven domains (with animations): [`GALLERY.md`](../GALLERY.md).**
+
 ## 4. The headline scientific finding (replicated in 2D and 3D)
 
 When an agent authors a perception network **freely**, its results are **high-variance** — it can write
@@ -61,6 +81,11 @@ an excellent network *or* self-sabotage the fragile geometry/augmentation (BEV &
 So: **an agent's authoring freedom is its variance source, and scaffolding scopes it.** This was found in
 2D (BEV), then deliberately re-tested and **replicated in 3D (occupancy)** at a clean n=3 — the lab
 working as a method: build → find it's non-robust → diagnose → fix → validate → **replicate**.
+
+![BEV scaffold variance collapse](../artifacts/bev/bev_scaffold_compare.png)
+*Free-form agent runs scatter (high variance); locking the geometry in a scaffold collapses it to
+near-reference reliability, 3/3 passing. The same effect replicates in 3D
+(`artifacts/occ/occ_scaffold_compare.png`).*
 
 ## 5. What the agent actually figured out (not hyperparameters)
 
@@ -88,6 +113,10 @@ The most recent work (and a good illustration of the whole loop):
    3 % → 98.8 %). *Transfer the method, not the geometry.*
 4. **Result.** From-scratch IPM reference ~0.22; the **free-form agent hit 0.44 and 0.39 (2/2 VERIFIED),
    ~2× the reference**, graded on unseen-time frames — by inventing static-camera-specific techniques.
+
+![map, not a camera](../artifacts/smartspace/smartspace_map_vs_camera.png)
+*"A map, not a camera": three of the 19 fixed warehouse cameras → a top-down floor-occupancy map (right,
+dots = people/forklifts/robots) — the privacy-preserving output the agent learned and verified.*
 
 Report: [`claudedocs/smartspace_domain_report_2026-06-21.md`](smartspace_domain_report_2026-06-21.md).
 
