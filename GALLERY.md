@@ -3,28 +3,31 @@
 A picture tour of the project: what the agent built, trained, and got graded on — across seven domains.
 Every result shown is measured on **held-out data the agent never saw**.
 
-> Many figures have an animated `.gif` / `.mp4` sibling in the same folder (e.g. driving fly-throughs,
-> loop-closure builds, BEV sweeps). Paths are noted under each still.
+> ▶️ **Animations embedded below are GIFs — they play automatically on GitHub** (and in any markdown
+> viewer that renders GIFs). HD `.mp4` versions sit beside them in the same folder for higher quality.
 
 ---
 
 ## 🛰️ SLAM & visual odometry (autonomous driving)
 
-### Feature tracking on real driving video
-![feature tracking](artifacts/slam_benchmark/tracking_seq07_strip.png)
-The agent's VO tracking hundreds of features (colored flow trails) across a KITTI street sequence —
-frames 50 → 100 → 149. This is the front-end that estimates camera motion.
-*Animated: `artifacts/slam_benchmark/tracking_seq07.gif` / `.mp4`.*
+### Feature tracking on real driving video ▶️ *(animated)*
+![feature tracking animated](artifacts/slam_benchmark/tracking_seq07.gif)
+The agent's VO tracking hundreds of features (colored flow trails) across a KITTI street sequence — the
+front-end that estimates camera motion. *(Still strip: `artifacts/slam_benchmark/tracking_seq07_strip.png`;
+HD video: `tracking_seq07.mp4`.)*
 
-### Dense SLAM map of a km-scale loop
+### Dense SLAM map of a km-scale loop ▶️ *(animated build)*
 ![DROID dense map](artifacts/slam_benchmark/droid_map_seq07.png)
-Stereo DROID-SLAM reconstructing a full KITTI loop — top-down (height-colored) and an oblique 3D view.
-The camera trajectory (red) closes the loop; **0.03–0.20 % error on km-scale loops.**
-*More: `droid_stereo_seq{05,07,09}.png`, `loop_build_seq07.gif`, `leaderboard_seq07.png`.*
+![SLAM loop building](artifacts/slam_benchmark/loop_build_seq07.gif)
+Stereo DROID-SLAM reconstructing a full KITTI loop — the static map (top-down height-colored + 3D),
+and the loop **assembling frame by frame** below. The trajectory (red) closes the loop;
+**0.03–0.20 % error on km-scale loops.** *(More: `droid_stereo_seq{05,07,09}.png`, `leaderboard_seq07.png`.)*
 
-### Trajectory demos (TUM indoor)
-`artifacts/demo/vo_demo.gif` (monocular) and `artifacts/demo_rgbd/vo_demo.gif` (RGB-D) — the agent's
-estimated camera path animated against ground truth; `trajectory.png` shows the final overlay.
+### Trajectory demos (TUM indoor) ▶️ *(animated)*
+![monocular VO demo](artifacts/demo/vo_demo.gif)
+![RGB-D VO demo](artifacts/demo_rgbd/vo_demo.gif)
+The agent's estimated camera path animated against ground truth — monocular (top) and RGB-D (bottom).
+*(Final overlays: `artifacts/demo/trajectory.png`, `artifacts/demo_rgbd/trajectory.png`.)*
 
 ---
 
@@ -35,7 +38,9 @@ estimated camera path animated against ground truth; `trajectory.png` shows the 
 Left: the 6 surround cameras. Right: top-down vehicle occupancy — **BEFORE** (from-scratch reference)
 vs **AFTER** (agent's network), against the held-out ground truth. Green = correct, red = missed,
 blue = false. The agent roughly doubles IoU (e.g. 0.07 → 0.15) on scenes it never saw.
-*Animated sweep: `artifacts/bev/bev_sweep_scene0103.gif` / `.mp4`.*
+
+▶️ *Animated sweep across a held-out scene:*
+![BEV sweep](artifacts/bev/bev_sweep_scene0103.gif)
 
 ### The variance finding (the headline science)
 `artifacts/bev/bev_variance_n3.png` and `artifacts/bev/bev_scaffold_compare.png` — free-form agent runs

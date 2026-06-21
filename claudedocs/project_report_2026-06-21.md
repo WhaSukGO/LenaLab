@@ -53,9 +53,9 @@ experiments — proving the lab is a self-directing research *program*, not just
 
 ### Pictures (held-out, every one)
 
-![feature tracking on driving video](../artifacts/slam_benchmark/tracking_seq07_strip.png)
-*The agent's VO tracking features (flow trails) across a KITTI street — the motion front-end.
-Animated: `artifacts/slam_benchmark/tracking_seq07.mp4`.*
+![feature tracking on driving video (animated)](../artifacts/slam_benchmark/tracking_seq07.gif)
+*▶️ The agent's VO tracking features (flow trails) across a KITTI street — the motion front-end
+(animated; HD video: `artifacts/slam_benchmark/tracking_seq07.mp4`).*
 
 ![dense SLAM loop map](../artifacts/slam_benchmark/droid_map_seq07.png)
 *Stereo DROID-SLAM reconstructing a km-scale KITTI loop (top-down height-colored + 3D); the trajectory
