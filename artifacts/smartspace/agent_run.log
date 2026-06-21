@@ -1,0 +1,34 @@
+Implementer: sandboxed agent authoring a GPU-trained floor-occupancy network (bar IoU=0.166)...
+
+================================================================
+RESULT: VERIFIED
+  measured (held-out): {'miou': 0.39416488024729507, 'global_iou': 0.39335042004841236, 'n_samples': 90, 'n_missing_pred': 0, 'metric': 'smartspace_floor_iou', 'caveats': ['per-sample mean 2D floor-occupancy IoU over held-out (unseen-time) frames', 'per-space self-verification: train=first 70% of the scene timeline, held-out=last 30%', 'box-derived agent occupancy (people/forklifts/robots), static multi-camera warehouse', 'missing/wrong-shape predictions score IoU 0']} | verdict: PASS
+  tokens: 2428636 | io_wall_s: 828.6
+--- authored main.py (first 25 lines) ---
+"""
+Multi-camera floor-occupancy via IPM + temporal background subtraction.
+
+Key design choices:
+  • static cameras → precompute projection grids once
+  • temporal-median background → 3-ch difference image directly highlights agents
+  • 6-ch input (3 rgb + 3 bg-diff) per camera
+  • bilinear grid_sample onto BEV at 4 height planes, fuse (mean+max) across cams
+  • focal loss  alpha=0.97, gamma=2 for ~0.4% positive rate
+  • adaptive top-K inference: predict exactly K cells per frame, where K is drawn
+    from the per-frame probability-rank (so we match the expected ~218 occupied cells
+    regardless of absolute probability scale on unseen frames)
+"""
+import os, time, glob
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+
+LAB_DATA      = os.environ['LAB_DATA']
+LAB_ARTIFACTS = os.environ['LAB_ARTIFACTS']
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Device: {DEVICE}")
+================================================================
+  recorded outcome to cross-run memory (domain=smartspace, exp=smartspace-impl-001)

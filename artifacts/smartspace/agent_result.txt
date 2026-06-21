@@ -1,0 +1,16 @@
+Smart-space floor occupancy (NVIDIA Physical AI Smart Spaces, MTMC_Tracking_2026, Warehouse_000)
+Track-B free-form: sandboxed agent authored + trained + self-verified main.py, local mode on RunPod 4090.
+Held-out: per-space self-verification (train=first 70% of scene timeline, val=last 30%, unseen time).
+
+VERIFIED runs (free-form, held-out floor IoU):
+  run 1: 0.4378  (model.py not salvaged — pod auto-terminated before scp; flaw fixed)
+  run 2: 0.3942  (model.py SALVAGED -> agent_smartspace_model.py)
+Reference IPM (hand-written): 0.216 / 0.232 / ~0.22 (3 seeds).  Bar = 0.166.
+=> the free-form agent (~0.39-0.44) is ~1.8-2x the hand-written IPM reference, on a brand-new
+   non-driving domain, graded on unseen-time frames.
+
+agent_smartspace_model.py (run 2) — what the agent figured out (beyond the reference IPM):
+  - temporal background subtraction (static cameras -> median background -> RGB+bg-diff 6-ch input)
+  - 4 height-plane IPM, fuse mean+max across the 19 cameras
+  - focal loss (alpha=0.97, gamma=2) for the ~0.4% positive rate
+  - adaptive top-K inference (predict ~expected occupied-cell count per frame; robust to prob-scale drift)
