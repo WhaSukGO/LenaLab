@@ -51,6 +51,25 @@ Plus a real **SLAM benchmark** (stereo DROID, 0.03–0.20 % on km-scale KITTI lo
 autonomous committee** (a multi-expert agent program that improved held-out ATE 26 % over a lineage of
 experiments — proving the lab is a self-directing research *program*, not just single-shot authoring).
 
+### Methods & resources (hardware · data · training · result)
+
+| Domain | Hardware | Dataset (size · train/val) | Training | Held-out result |
+|---|---|---|---|---|
+| RGB-D VO | CPU (sandbox) | TUM RGB-D fr1 · 3.1 GB · unseen `fr1_desk` | none (classical geometry) | ATE **0.033 m** |
+| Monocular VO | CPU | TUM RGB-D fr1 · 3.1 GB | none (classical) | ATE 0.052 m |
+| KITTI stereo VO | CPU | KITTI odom stereo · 32 GB · seq00 dev, 05/07 held-out | none (classical) | t_err **2.08 %** |
+| Learned VO | GPU (RTX 3080 16 GB) | KITTI multi-seq | from scratch, n=3 | 19.8 m (beats learned ref) |
+| BEV perception | GPU (3080 / RTX 4090) | nuScenes **mini** · 4 GB raw → 227 MB cache · 323/81 | from scratch, ~24 ep | scaffold **0.136 ± 0.005 IoU** |
+| 3D occupancy | GPU | nuScenes **mini** · 226 MB cache · 323/81 | from scratch, ~24 ep, 0.57 GB VRAM | scaffold **0.079 ± 0.004 IoU** |
+| Smart-space floor occ | **cloud RTX 4090 24 GB** (RunPod) | NVIDIA Smart Spaces 1 warehouse · 19 cams, 2.9 GB video → 481 MB cache · 210/90 | from scratch IPM; agent run ≈ **14 min** GPU (~120 ep) | **0.39–0.44 IoU** (~2× ref) |
+| SLAM benchmark | GPU | KITTI loops · 32 GB | pretrained DROID (no training) | **0.03–0.20 %** on km-scale loops |
+
+*Notes: classical-CV domains (VO/SLAM front-ends) train **nothing** — they're geometry, run on CPU. The
+learned domains train **from scratch** (no pretrained weights in the sandbox), so absolute numbers are
+modest by design. Cloud cost for the smart-space run was **~$2–3** (RTX 4090 @ $0.69/hr; agent session
+io-wall ≈ 829 s, ≈ 2.4 M tokens). Datasets are deliberately small (nuScenes **mini** = 10 scenes; one
+warehouse scene) — the claim is generalization-of-method, not scale.*
+
 ### Pictures (held-out, every one)
 
 ![feature tracking on driving video (animated)](../artifacts/slam_benchmark/tracking_seq07.gif)
@@ -63,8 +82,11 @@ experiments — proving the lab is a self-directing research *program*, not just
 
 ![BEV before/after](../artifacts/bev/bev_before_after.png)
 *BEV vehicle occupancy: 6 surround cams (left) → **BEFORE** (reference) vs **AFTER** (agent) vs held-out
-GT. Green=correct, red=missed, blue=false. The agent ~doubles IoU on unseen scenes. Sweep:
-`artifacts/bev/bev_sweep_scene0103.gif`.*
+GT. Green=correct, red=missed, blue=false. The agent ~doubles IoU on unseen scenes.*
+
+![BEV detection sweep (animated)](../artifacts/bev/bev_sweep_scene0103.gif)
+*▶️ The agent's BEV occupancy swept across a full held-out scene (the agent's detection result vs GT,
+frame by frame).*
 
 ![3D occupancy pred vs GT](../artifacts/occ/occ_pred_heldout.png)
 *3D occupancy: cameras → held-out voxel GT vs the agent's prediction (height-colored + TP/FN/FP).*
