@@ -59,3 +59,18 @@ STEP 3 (few-shot per-space adaptation, on unseen W020, best-threshold IoU):
      architecture is plenty capable; cross-space TRANSFER is the futile part, not the model.
 STEP 2 (domain randomization, same architecture): running — does jitter+DropView lift frozen
   cross-space above 0.046? (data-vs-architecture discriminator.)
+
+STEP 2 RESULT (domain randomization, same architecture): best unseen IoU = 0.0576 (no-DR 0.046).
+  => jitter+DropView give only ~+25% rel and don't exceed the no-DR best-threshold ceiling (~0.057);
+     DR does NOT close the cross-space gap at 12 scenes.
+
+==================  FINAL VERDICT (panel + ladder)  ==================
+Q: Is the model ARCHITECTURE the cross-space bottleneck?  ANSWER: No.
+- Same architecture reaches ~0.41 per-space (Step 3 from-scratch) -> capacity is ample.
+- Cross-space transfer fails (~0.05) and neither more scenes (4->12: flat) nor domain
+  randomization (->0.058) closes it -> each warehouse is its own distribution; frozen
+  cross-space is a dead end at this scale, REGARDLESS of architecture.
+- It doesn't matter for deployment: per-space training/adaptation works (0.36-0.42) and is
+  the natural, cheap recipe (cameras are static+calibrated; you always have some new-space footage).
+DEPLOYABLE RECIPE: stand up a model PER space (from scratch or quick-adapt), self-verify on
+held-out time. Confirms the per-space self-verification framing end-to-end.

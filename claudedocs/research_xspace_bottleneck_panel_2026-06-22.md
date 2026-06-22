@@ -108,3 +108,20 @@ architecture overhaul (Step 4) for if-and-only-if the data/method levers fail.
 the exact architecture-vs-data split (the masked-mean-vs-attention seam is genuinely open and only Step 2/4
 settles it). Aggregate panel estimate: ~25–30% architecture-primary, ~70% domain/data/method-primary, with
 the claim currently under-determined by the experiment.*
+
+## Empirical resolution — the ladder was run (2026-06-22, local 3080)
+The panel's predictions held up:
+- **Step 1 (honest metric):** threshold sweep recovered only ~20–25% rel — the gap is real (matches the
+  methodology skeptic's calibration caveat, but it's not the main story).
+- **Step 2 (domain randomization, SAME architecture):** unseen IoU 0.046 → **0.058** — a marginal lift
+  that does NOT close the gap. Data-side DR at 12 scenes helps a little but isn't the silver bullet.
+- **Step 3 (few-shot per-space adaptation):** zero-shot 0.052 → **few-shot 0.355** → **from-scratch
+  per-space 0.415**. The decisive result: the SAME architecture reaches ~0.41 per-space, so **capacity
+  is ample and architecture is NOT the bottleneck** (the transfer-skeptic's 70% and the literature
+  reviewer's 78% were vindicated). From-scratch even beats warm-starting from the generalist → the
+  cross-space features are non-transferable; per-space is the deployable path.
+
+**Closed verdict:** architecture is not the primary bottleneck. Frozen cross-space transfer is hard
+*independent of architecture* (more scenes flat, DR marginal); per-space training/adaptation is the
+correct, working, deployable answer (~0.36–0.42). The user's architecture hypothesis was reasonable but
+the evidence resolved against it.
