@@ -106,14 +106,19 @@ Keep **decoded-frame npz** for v1 (our code works; ~10 GB is fine; no per-epoch 
 | **Synthetic-only** (may not = real cameras) | Note MMPTRACK (real) as the sim→real cross-check after v1. |
 | More scenes still may not close the gap | Honest either way — a scaled negative result is still a finding (the gap is fundamental). |
 
-## 10. Decisions needed (before `/sc:implement`)
-1. **Scope:** v1 = 2026 warehouses (~17 train / 3 val, easy) — or include 2024 multi-type now (more
-   diverse, +schema work)? *(Rec: v1 first.)*
-2. **Train compute:** cloud 4090 pod (mount volume, ~1 hr) — or local 3080 (free, multi-hr)? *(Rec: cloud
-   for the real run; local smoke first.)*
-3. **Network volume now, or skip it for v1** and just upload ~10 GB to one pod? *(Rec: network volume —
-   it's the whole point of this design and ~$2/mo; but a one-pod upload is fine if you want to defer it.)*
+## 10. Decisions — LOCKED (2026-06-22)
+1. **Scope:** ✅ **2026 warehouses** — ~17 train / 3 unseen val (W020/021/022). Same schema. 2024
+   multi-type deferred to Phase B.
+2. **Storage:** ✅ **RunPod network volume** — prep once → S3-upload → mount on every pod. ~30 GB, in the
+   known-good DC.
+3. **Train compute:** ✅ **Cloud 4090 pod** (mounts the volume, ~1 hr) for the real run; local 3080 only
+   for a smoke. (Console-deployed pod — API pods don't expose SSH; needs one SSH string from the user.)
 
-*Recommended path: v1 = 2026 warehouses · network volume in the known-good DC · prep locally → S3 upload
-· train on a cloud 4090 mounting the volume · resume from the pretrained checkpoint · keep all ckpts on
-the volume + commit best. Next: `/sc:implement` Phase 0.*
+**Locked v1:** 2026 warehouses · network volume · cloud 4090 · resume from `xspace_ref_pretrained.pt` ·
+all checkpoints kept on the volume + best committed.
+
+## 11. Next step
+`/sc:implement` **Phase 0** — provision the network volume (known-good DC) + verify S3 upload of one
+prepped scene + mount-read from a pod. Then Phase 1 (prep ~20 scenes → volume), Phase 2 (train on cloud
+4090, resume), Phase 4 (docs). *Human-in-loop bits:* a network volume may need console provisioning, and
+the training pod needs a console SSH string (API pods don't expose SSH).
