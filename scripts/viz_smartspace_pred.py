@@ -14,7 +14,7 @@ import imageio
 SCENE, VAL, PREDS, OUT = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 N = int(sys.argv[5]) if len(sys.argv) > 5 else 36
 STRIDE = int(sys.argv[6]) if len(sys.argv) > 6 else 2
-DUR = float(sys.argv[7]) if len(sys.argv) > 7 else 0.36       # 0.5x of the 0.18s "original" speed
+DUR = float(sys.argv[7]) if len(sys.argv) > 7 else 400        # MILLISECONDS per frame (imageio>=2.37)
 OW, OH = 1920, 1080          # original video resolution (GT 2d boxes are in these coords)
 IMG_W, IMG_H = 352, 128      # resolution cam_proj projects into
 S = 360                      # per-cell render size
@@ -117,5 +117,5 @@ for f in files:
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (60, 255, 60), 1)
     frames.append(cv2.cvtColor(grid, cv2.COLOR_BGR2RGB))
 
-imageio.mimsave(OUT, frames, duration=DUR, loop=0)
-print(f"wrote {OUT}: {len(frames)} frames @ {DUR}s | cam0 sees {int(seen.sum())} cells | mean IoU {np.mean(ious):.4f}")
+imageio.mimsave(OUT, frames, duration=DUR, loop=0)           # DUR in ms
+print(f"wrote {OUT}: {len(frames)} frames @ {DUR}ms/frame | cam0 sees {int(seen.sum())} cells | mean IoU {np.mean(ious):.4f}")
