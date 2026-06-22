@@ -1,0 +1,12 @@
+Cross-space generalization (smart-space) — train on UNSEEN warehouses, 2026-06-22
+Train: Warehouse_000/001/002/003 (19 cams each, 600 frames). Test: Warehouse_020 (16 cams, UNSEEN).
+Scene-agnostic IPM (per-sample cam_proj+cam_valid+grid_bounds, canonical 224x224 grid), from scratch.
+
+RESULT (from-scratch, 4 train scenes): best unseen-warehouse IoU = 0.0370
+  vs per-space self-verification (same domain) = ~0.39  -> ~10x drop.
+=> A model trained on a few warehouses does NOT transfer to a brand-new warehouse from scratch
+   (train loss fell to 0.07 but unseen IoU plateaued ~0.037 = overfitting to the training spaces).
+   This is the honest hard finding: cross-space generalization needs far more scenes and/or
+   pretrained features. It VALIDATES the per-space self-verification framing (stand up + verify a
+   model FOR each space) as the deployable approach, rather than one model for all warehouses.
+Checkpoint: artifacts/smartspace/checkpoints/xspace_ref.pt (best) + .full.pt (resume/train-more).
