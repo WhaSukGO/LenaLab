@@ -10,3 +10,13 @@ RESULT (from-scratch, 4 train scenes): best unseen-warehouse IoU = 0.0370
    pretrained features. It VALIDATES the per-space self-verification framing (stand up + verify a
    model FOR each space) as the deployable approach, rather than one model for all warehouses.
 Checkpoint: artifacts/smartspace/checkpoints/xspace_ref.pt (best) + .full.pt (resume/train-more).
+
+--- ablation (pretrained backbone), 2026-06-22 ---
+Same 4-train / unseen-W020 setup, ResNet18 ImageNet-pretrained backbone:
+  cross-space from-scratch  unseen IoU = 0.0370
+  cross-space pretrained    unseen IoU = 0.0435  (+18% rel, still ~9x below per-space ~0.39)
+=> Pretrained features help marginally; cross-space generalization is NOT solved by the backbone.
+   The bottleneck is training-space DIVERSITY (only 4 warehouses). Honest conclusion: real
+   cross-space transfer needs many more training warehouses (the field uses dozens of scenes) and/or
+   per-space test-time adaptation. Per-space self-verification (~0.39) remains the deployable path.
+Checkpoints kept: xspace_ref.pt (scratch) + xspace_ref_pretrained.pt (+ .full.pt resume states).
