@@ -14,7 +14,7 @@ import imageio
 SCENE, VAL, PREDS, OUT = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 N = int(sys.argv[5]) if len(sys.argv) > 5 else 36
 STRIDE = int(sys.argv[6]) if len(sys.argv) > 6 else 2
-DUR = float(sys.argv[7]) if len(sys.argv) > 7 else 0.18       # original (faster) speed
+DUR = float(sys.argv[7]) if len(sys.argv) > 7 else 0.36       # 0.5x of the 0.18s "original" speed
 OW, OH = 1920, 1080          # original video resolution (GT 2d boxes are in these coords)
 IMG_W, IMG_H = 352, 128      # resolution cam_proj projects into
 S = 360                      # per-cell render size
@@ -94,19 +94,21 @@ for f in files:
     ov = decorate(np.zeros((S, S, 3), np.uint8))
     def gpx(ix, iy):
         return (int(ix * S / XG), int((YG - 1 - iy) * S / YG))
-    ng, lab = cv2.connectedComponents(gt.astype(np.uint8))      # one circle per GT object (>=2 cells)
+    def in_fov(idx):                       # blob centroid inside camera 0's footprint?
+        ci, cj = int(idx[:, 0].mean()), int(idx[:, 1].mean())
+        return 0 <= ci < XG and 0 <= cj < YG and seen[ci, cj]
+    ng, lab = cv2.connectedComponents(gt.astype(np.uint8))      # GT objects in cam-0 area (>=2 cells)
     for k in range(1, ng):
         m = lab == k; idx = np.argwhere(m)
-        if len(idx) < 2:
+        if len(idx) < 2 or not in_fov(idx):
             continue
-        c = gpx(idx[:, 0].mean(), idx[:, 1].mean())
-        cv2.circle(ov, c, 9, (0, 255, 0) if (pred & m).any() else (0, 0, 255), 2)
-    npd, labp = cv2.connectedComponents(pred.astype(np.uint8))  # false predictions (no GT overlap)
+        cv2.circle(ov, gpx(idx[:, 0].mean(), idx[:, 1].mean()), 9, (0, 255, 0) if (pred & m).any() else (0, 0, 255), 2)
+    npd, labp = cv2.connectedComponents(pred.astype(np.uint8))  # false predictions in cam-0 area
     for k in range(1, npd):
         m = labp == k; idx = np.argwhere(m)
-        if len(idx) >= 2 and not (gt & m).any():
+        if len(idx) >= 2 and in_fov(idx) and not (gt & m).any():
             cv2.circle(ov, gpx(idx[:, 0].mean(), idx[:, 1].mean()), 9, (0, 0, 255), 2)
-    cv2.putText(ov, f"green=hit  red=miss/false  IoU {iou:.2f}", (8, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1)
+    cv2.putText(ov, f"green=hit red=miss/false (cam0 only) IoU {iou:.2f}", (8, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (255, 255, 255), 1)
     sep = np.full((S, 4, 3), 40, np.uint8)
     top = np.hstack([cam, sep, mapimg(gt, "GT  (dots = same agents)", dots)])
     bot = np.hstack([mapimg(pred, "agent pred", dots), sep, ov])
