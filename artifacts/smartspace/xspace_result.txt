@@ -44,3 +44,18 @@ ADAPTATION (pretrain a generalist, then briefly fine-tune on a little of the new
 which converts the transfer problem into quick specialization, and per-space specialization
 already works (per-space ~0.22 IPM / ~0.39 agent). Confirms per-space self-verification as
 the deployable path; "one frozen model for all warehouses" does not generalize here.
+
+--- experiment ladder (local 3080), 2026-06-22 ---
+STEP 1 (honest metric): threshold sweep on 12-train ckpt, unseen scenes.
+  W020 IoU@0=0.045 bestIoU=0.057 bestF1=0.107 | W021 0.036/0.039/0.075 | W022 0.070/0.081/0.151
+  => model slightly over-predicts (opt thr ~+1.0 from pos_weight=40) but fixing it recovers only
+     ~20-25% rel; the unseen gap is REAL, not a metric artifact.
+STEP 3 (few-shot per-space adaptation, on unseen W020, best-threshold IoU):
+  generalist zero-shot        = 0.052
+  generalist + few-shot adapt = 0.355   (6.8x jump from a little of the new warehouse)
+  from-scratch per-space      = 0.415   (even BEATS the adapted generalist)
+  => DEPLOYABLE ANSWER: per-space training/adaptation works (~0.36-0.42). The cross-space
+     generalist is so non-transferable that from-scratch beats using it as a warm start ->
+     architecture is plenty capable; cross-space TRANSFER is the futile part, not the model.
+STEP 2 (domain randomization, same architecture): running — does jitter+DropView lift frozen
+  cross-space above 0.046? (data-vs-architecture discriminator.)
