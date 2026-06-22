@@ -20,3 +20,27 @@ Same 4-train / unseen-W020 setup, ResNet18 ImageNet-pretrained backbone:
    cross-space transfer needs many more training warehouses (the field uses dozens of scenes) and/or
    per-space test-time adaptation. Per-space self-verification (~0.39) remains the deployable path.
 Checkpoints kept: xspace_ref.pt (scratch) + xspace_ref_pretrained.pt (+ .full.pt resume states).
+
+--- 12-train run + per-scene analysis, 2026-06-22 ---
+12 train warehouses (W000-011, pretrained backbone, 18 ep) -> best unseen IoU = 0.0457.
+Scaling 4->12 train scenes barely moved it (0.044 -> 0.046).
+
+Per-scene breakdown (12-train checkpoint):
+  UNSEEN  W020(16cam)=0.046  W021(16cam)=0.036  W022(4cam)=0.072
+  TRAIN   W000(19cam)=0.181  W005(19cam)=0.181  W011(10cam)=0.294
+
+DIAGNOSIS — it's a pure TRANSFER failure, not a capacity problem:
+- On TRAIN warehouses the shared model scores ~0.18-0.29, i.e. about as well as a DEDICATED
+  per-space IPM reference (~0.22). So one model CAN fit many seen warehouses fine.
+- On UNSEEN warehouses it collapses to ~0.04-0.07 -> a ~4-5x train->unseen gap. The model
+  memorizes each training warehouse's camera geometry/viewpoints; that knowledge does NOT
+  transfer to a new space's distinct layout. (W022's 4-cam higher score is a small-sample
+  quirk: tiny covered area = sparser/easier grid.)
+- Tripling scenes (4->12) didn't help because the issue isn't "too few examples to fit" -
+  it's that each warehouse is its own distribution; seen-space fit was already fine.
+
+IMPLICATION: more training scenes alone won't close it. The realistic fix is per-space
+ADAPTATION (pretrain a generalist, then briefly fine-tune on a little of the new space) -
+which converts the transfer problem into quick specialization, and per-space specialization
+already works (per-space ~0.22 IPM / ~0.39 agent). Confirms per-space self-verification as
+the deployable path; "one frozen model for all warehouses" does not generalize here.

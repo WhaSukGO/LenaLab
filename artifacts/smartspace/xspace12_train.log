@@ -1,0 +1,6 @@
+  epoch 13 loss 0.051 val_IoU(unseen) 0.0415 (best 0.0457)
+  epoch 14 loss 0.069 val_IoU(unseen) 0.0376 (best 0.0457)
+  epoch 15 loss 0.111 val_IoU(unseen) 0.0385 (best 0.0457)
+  epoch 16 loss 0.048 val_IoU(unseen) 0.0384 (best 0.0457)
+  epoch 17 loss 0.068 val_IoU(unseen) 0.0402 (best 0.0457)
+XSPACE_DONE seed=0 best_unseen_IoU=0.0457 -> /workspace/xspace12.pt (+ /workspace/xspace12.pt.full.pt)
