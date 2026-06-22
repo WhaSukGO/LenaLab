@@ -14,3 +14,8 @@ agent_smartspace_model.py (run 2) — what the agent figured out (beyond the ref
   - 4 height-plane IPM, fuse mean+max across the 19 cameras
   - focal loss (alpha=0.97, gamma=2) for the ~0.4% positive rate
   - adaptive top-K inference (predict ~expected occupied-cell count per frame; robust to prob-scale drift)
+
+--- local GPU reproduction (2026-06-21, RTX 3080 via vo-gpu-torch:1) ---
+Re-ran the salvaged agent main.py on the local GPU container (no cloud): held-out floor IoU
+0.3941 over 90 frames == cloud 0.3942 (faithful reproduction). Predictions -> pred-vs-GT demo
+artifacts/smartspace/warehouse_pred_demo.gif (camera | GT | agent pred | TP/FN/FP overlay).

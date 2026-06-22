@@ -66,11 +66,18 @@ then a fine-tune stage. This is the agent **improving a network by training it**
 
 ## 🏭 Smart-space floor occupancy (the 7th domain — off the road)
 
-### Warehouse demo — camera → live floor map ▶️ *(animated)*
+### Working model — predicted floor map vs ground truth ▶️ *(animated)*
+![warehouse prediction demo](artifacts/smartspace/warehouse_pred_demo.gif)
+**The agent's trained model running on held-out frames:** camera → **GT** floor map → **agent's predicted**
+floor map → **TP/FN/FP** overlay (green=hit, red=missed, blue=false), per-frame IoU. Held-out floor IoU
+**0.394** (reproduced locally on an RTX 3080 — identical to the cloud run's 0.3942). This is the model
+*actually working* on data it never saw.
+
+### Camera → live floor map (the task) ▶️ *(animated)*
 ![warehouse demo](artifacts/smartspace/warehouse_demo.gif)
-A static warehouse camera with **agent detections** drawn (green boxes, left) beside the **live top-down
-floor-occupancy map** (right, agents as bright dots) — swept across the held-out (unseen-time) window.
-This is the domain's job: turn fixed cameras into a moving "what's where" map of the space.
+A static warehouse camera with **agent detections** (green boxes, left) beside the **live top-down
+floor-occupancy map** (right, agents as bright dots) — the domain's job: turn fixed cameras into a moving
+"what's where" map of the space.
 
 ### "A map, not a camera"
 ![map not a camera](artifacts/smartspace/smartspace_map_vs_camera.png)

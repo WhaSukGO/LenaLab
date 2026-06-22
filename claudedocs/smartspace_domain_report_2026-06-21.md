@@ -17,9 +17,10 @@ a camera"** (occupancy is privacy-preserving by construction) and **"trust on da
 unique, so a model that *self-verifies* on a brand-new space is the unlock). This domain makes the second
 literal: the held-out gate **is** the per-space "trust on day one" claim.
 
-![warehouse demo (animated)](../artifacts/smartspace/warehouse_demo.gif)
-*▶️ The domain in motion: a fixed warehouse camera with agent detections (green boxes) → the live
-top-down floor-occupancy map (agents as bright dots), across the held-out (unseen-time) window.*
+![warehouse prediction demo (animated)](../artifacts/smartspace/warehouse_pred_demo.gif)
+*▶️ The working model on held-out frames: camera → GT floor map → **agent's predicted** floor map →
+TP/FN/FP overlay (green=hit, red=missed, blue=false), per-frame IoU. Held-out floor IoU **0.394**
+(reproduced locally on an RTX 3080 — matches the cloud's 0.3942).*
 
 ## 2. The task
 
