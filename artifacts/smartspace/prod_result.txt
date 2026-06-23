@@ -1,0 +1,10 @@
+PRODUCTION per-space floor-occupancy model (Warehouse_000), 2026-06-22
+Held-out IoU (later 30% of timeline, same warehouse), best-threshold:
+  per-space IPM reference   0.22
+  agent baseline            ~0.39
+  iter1 pretrained stride-8 0.340   (pretrained backbone alone < agent: resolution matters)
+  iter2 + finer stride-4    0.391   (matched baseline — finer features were the gap)
+  iter3 + 3x data (630 fr)  0.4422  (+13% over agent baseline) <- PRODUCTION MODEL
+Recipe: ImageNet-pretrained ResNet18 (conv1 inflated to 6ch=rgb+bg-diff) at stride-4,
+4-plane IPM (mean+max fuse), focal loss, discriminative LR (bb 1.5e-4/head 5e-4), 120 ep, bs8.
+Checkpoint: artifacts/smartspace/checkpoints/prod_w000_dense.pt (+ .bg.npy + .meta.json)

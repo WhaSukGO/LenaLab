@@ -80,10 +80,11 @@ class Backbone(nn.Module):
         conv1 = nn.Conv2d(6, 64, 7, 2, 3, bias=False)
         with torch.no_grad():
             conv1.weight[:, :3] = w; conv1.weight[:, 3:] = w * 0.5   # bg-diff inits from rgb filters
-        layers = [conv1, bb.bn1, bb.relu, bb.maxpool, bb.layer1, bb.layer2]
-        outc = 128
+        layers = [conv1, bb.bn1, bb.relu, bb.maxpool, bb.layer1]; outc = 64   # LAYER=1 -> stride 4 (fine)
+        if LAYER >= 2:
+            layers.append(bb.layer2); outc = 128                             # stride 8
         if LAYER >= 3:
-            layers.append(bb.layer3); outc = 256
+            layers.append(bb.layer3); outc = 256                            # stride 16
         self.net = nn.Sequential(*layers)
         self.reduce = nn.Conv2d(outc, FEAT_CH, 1)
 
@@ -158,8 +159,11 @@ if __name__ == "__main__":
     va = torch.utils.data.DataLoader(FloorDS(os.path.join(cache, "val"), bg, False), batch_size=bs, num_workers=4)
     model = ProdModel(grids, masks).to(dev)
     print(f"params={sum(p.numel() for p in model.parameters()):,} | train {len(tr.dataset)} val {len(va.dataset)}", flush=True)
-    opt = torch.optim.AdamW(model.parameters(), 1e-3, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, 1e-3, epochs=epochs, steps_per_epoch=len(tr), pct_start=0.05)
+    bb_ids = {id(p) for p in model.bb.parameters()}            # discriminative LR: pretrained backbone gentler
+    groups = [{"params": list(model.bb.parameters()), "lr": 1.5e-4},
+              {"params": [p for p in model.parameters() if id(p) not in bb_ids], "lr": 5e-4}]
+    opt = torch.optim.AdamW(groups, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=[1.5e-4, 5e-4], epochs=epochs, steps_per_epoch=len(tr), pct_start=0.05)
     scaler = torch.amp.GradScaler("cuda")
     best_iou, best_thr = 0.0, 0.5
     for ep in range(epochs):
@@ -168,6 +172,8 @@ if __name__ == "__main__":
             inp, bev = inp.to(dev), bev.to(dev)
             with torch.amp.autocast("cuda"):
                 loss = focal(model(inp), bev)
+            if not torch.isfinite(loss):                       # NaN guard: skip bad batch, don't poison weights
+                opt.zero_grad(set_to_none=True); continue
             opt.zero_grad(set_to_none=True); scaler.scale(loss).backward()
             scaler.unscale_(opt); nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(opt); scaler.update(); sched.step(); tot += loss.item()

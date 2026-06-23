@@ -1,0 +1,6 @@
+{
+  "val_iou": 0.4422192833301845,
+  "thr": 0.8,
+  "backbone": "resnet18_layer1",
+  "epochs": 120
+}
