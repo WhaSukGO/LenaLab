@@ -192,10 +192,11 @@ Held-out = **per-space self-verification**: train on the scene's first 70 % of t
 30 % (unseen time). This makes the deployable claim literal — *stand up and verify a model for THIS
 space* ("a map, not a camera"; occupancy is privacy-preserving by construction).
 
-| condition | held-out floor IoU | vs bar 0.166 |
+| condition | held-out floor IoU | note |
 |---|---|---|
-| from-scratch **IPM reference** (3 seeds) | ~0.22 (0.216/0.232/~0.22) | — |
-| agent **free-form** | **0.4378 / 0.3942** | **2/2 VERIFIED** |
+| from-scratch **IPM reference** (3 seeds) | ~0.22 (0.216/0.232/~0.22) | baseline I wrote |
+| agent **free-form** | **0.4378 / 0.3942** | 2/2 VERIFIED, ~2× the reference |
+| **production model** (pretrained ResNet18 stride-4 + 3× data) | **0.442** | **+13% over the agent baseline** |
 
 **The agent beat the baseline I wrote** (~1.8–2×), on a brand-new non-driving domain, graded on frames
 it never saw. A real geometry finding came first: the driving **Lift-Splat failed** on static overhead
@@ -205,6 +206,17 @@ cameras (~3 % of its frustum landed in-grid, no spatial learning) — the agent'
 scene, two free-form runs (no n=3/scaffold here), per-space (not cross-space) self-verification**; the
 first run's model was lost to an early auto-terminate (supervisor since made artifact-safe). Full report:
 [`claudedocs/smartspace_domain_report_2026-06-21.md`](claudedocs/smartspace_domain_report_2026-06-21.md).
+
+**Cross-space, then production (2026-06-23).** We then asked the harder question — *one model for all
+warehouses?* — and answered it honestly: training on 4→12 warehouses and testing an **unseen** one stays
+at **~0.04–0.05 IoU** (vs ~0.2 on the *seen* warehouses), and neither more scenes nor domain
+randomization closes it — each space is its own camera-rig distribution. A four-expert panel + a 3-step
+experiment ladder ([`claudedocs/research_xspace_bottleneck_panel_2026-06-22.md`](claudedocs/research_xspace_bottleneck_panel_2026-06-22.md))
+showed the bottleneck is **distribution shift, not architecture** — and that **per-space adaptation
+recovers it** (frozen 0.05 → few-shot 0.36 → from-scratch 0.42). So per-space is the deployable unit, and
+we pushed *that* to production: an ImageNet-**pretrained ResNet18 at stride-4 + 3× denser frames** reaches
+**held-out IoU 0.442** (+13% over the agent baseline) — checkpoint kept
+(`artifacts/smartspace/checkpoints/prod_w000_dense.pt`), working demo `artifacts/smartspace/prod_demo.gif`.
 
 → *Perception beyond driving.* **Seven agent-authored domains** — the seventh proving the loop carries
 to a different problem class, where the agent's research (not a leaderboard) is the edge.
