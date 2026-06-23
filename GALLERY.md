@@ -66,6 +66,14 @@ then a fine-tune stage. This is the agent **improving a network by training it**
 
 ## 🏭 Smart-space floor occupancy (the 7th domain — off the road)
 
+### Production model — held-out IoU 0.442 ▶️ *(animated)*
+![production model demo](artifacts/smartspace/prod_demo.gif)
+**The production per-space model on held-out frames:** camera 0 → **GT** floor occupancy → **model
+probability** (IPM rays concentrating on agents) → **TP/FN/FP** overlay (green=hit, red=missed,
+orange=false). Held-out floor **IoU 0.442** — a **+13% lift over the agent baseline (~0.39)**, reached by
+upgrading to an ImageNet-pretrained ResNet18 backbone at stride-4 plus 3× denser training frames.
+*(Checkpoint kept: `artifacts/smartspace/checkpoints/prod_w000_dense.pt`.)*
+
 ### Working model — predicted floor map vs ground truth ▶️ *(animated)*
 ![warehouse prediction demo](artifacts/smartspace/warehouse_pred_demo.gif)
 **The agent's trained model running on held-out frames:** camera → **GT** floor map → **agent's predicted**
