@@ -66,6 +66,27 @@ depth-prior warm-start is also free (rendered GT). This removes the biggest cost
 - Fallback if training proves infeasible: smaller Wan + smaller store; Gen3R is strictly *more* work (here
   the DiT, retriever, training loop, LoRA plumbing, and unfreeze logic already exist).
 
+## Gradient-flow smoke test — ✅ PASSED (2026-06-24, H100)
+Ran a **tiny-config, no-download** test on the real repo classes: a trainable `StoreBuilder` →
+`MemoryRetriever` (QKV) → `memory_emb` → DiT `CrossAttention` → loss → `backward()`.
+- Retrieved shape `(1, 3128, 1024)` = the expected `[B, 4·782, 1024]` contract. ✓
+- **STORE grad norm = 0.0015 (non-zero) → gradients reach the trainable store.** ✓ `GRAD_FLOW_OK`.
+→ **The crux is empirically validated:** a learned in-graph store *can* train end-to-end through Captain
+Safari's existing retrieval+DiT. Done on the H100 in seconds, **no 21 GB base-model download** (budget-smart).
+Artifacts kept in repo: `artifacts/learned3d_wedge/gradflow_test.py`, `working_env.txt`.
+
+## Working environment (hard-won — reuse to skip the dep cascade)
+Repo has **no version pins** → fresh install pulls incompatible latest. Validated set:
+`transformers==4.46.2`, `huggingface-hub==0.26.2`, `tokenizers==0.20.3`, `+ trimesh, matplotlib, gradio`
+(StreamVGGT-viz deps pulled in by `import diffsynth`). Full lock: `artifacts/learned3d_wedge/working_env.txt`.
+
+## Status & next (budget note)
+Phase-0 architecture validation is **complete** (Gate D + gradient flow). The remaining Phase-0 piece —
+**overfit-one-clip *beats frozen baseline*** — needs the **21 GB base Wan-5B + real data + a real training
+step** (a longer, download-heavy session). Per the budget logic, that's best run on the **cheap-staging-pod
+→ H100** pattern (download to a volume on a cheap pod; H100 only for the train step) — *not* by idling the
+H100 through the download as we partly did here.
+
 ## Bottom line
 The architecture gate **passes**: DiT is swap-friendly, the retriever is the (editable) coupling point, the
 training infra exists, and our synthetic-toon data removes the reference project's worst cost. The wedge is a
