@@ -92,3 +92,26 @@ The architecture gate **passes**: DiT is swap-friendly, the retriever is the (ed
 training infra exists, and our synthetic-toon data removes the reference project's worst cost. The wedge is a
 **well-scoped fork**, not a from-scratch build — feasible for a solo researcher on 1×H100 via PreEnc + LoRA +
 a small in-graph store-builder.
+
+## Overfit integration run — real model end-to-end (2026-06-25, H100) — with honest caveat
+Got the **real released model running end-to-end on the pod** (5B DiT loaded from the local 9.8 GB
+safetensors via `ModelConfig(path=...)`, no T5/VAE; LoRA + real `memory_emb`/`memory_cross_attn`/
+`memory_retriever` loaded from `epoch-4.safetensors`; real pre-baked memory + real camera intrinsics/
+extrinsics). A **trainable in-graph store** (param init = base memory) gets real gradients through the
+frozen DiT + retriever and **reduces the real denoising loss 4.56 → 3.01 (−34%, monotonic, stable)** at a
+fixed (noise, timestep). Baseline (frozen, 8 seeds) = 4.77. `max VRAM 25.7 GB`.
+Artifacts: `artifacts/learned3d_wedge/overfit_test.py`, `overfit_result.txt`.
+
+**HONEST CAVEAT (this is a plumbing/mechanism check, NOT the scientific result):**
+- Demo assets have **no pre-encoded latents** and **VAE/T5 weren't downloaded** → the overfit target is a
+  **synthetic fixed latent**, not the real video clip. So this shows the store reduces loss *through the
+  real model machinery*, not that it explains the *real clip*.
+- Overfitting a **12.8M-param store to ONE fixed (noise,target) pair trivially** reduces that loss — it
+  re-confirms "gradients flow + capacity" (already shown by the gradient-flow test), **not** that a
+  *learned* store beats a *frozen* one on real/held-out data.
+- **The genuine test** (learned store ≥ frozen on the *real* clip, held-out) needs **VAE+T5 (~12 GB, fast
+  via HF) → encode the mp4 → a train-on-some-frames / test-on-others protocol vs the frozen baseline.**
+
+**Net for Phase 0:** end-to-end **feasibility is validated** (gradient flow + real-model integration runs +
+in-graph store trains on the real loss path). The **scientific claim (learned>frozen on real data) is the
+next experiment**, not yet shown.

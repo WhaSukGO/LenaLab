@@ -1,0 +1,8 @@
+BASELINE_LOSS=4.7677
+OVERFIT_FINAL_LOSS=3.0103
+frozen_at_fixed_pair=4.5611
+LEARNED_STORE_BEAT_BASELINE=True
+baseline_per_seed=['2.5941', '3.3777', '4.4002', '5.7282', '6.9320', '6.9635', '5.3104', '2.8356']
+overfit_steps=100 lr=0.005
+max_vram_alloc_GB=25.71
+NOTE: synthetic fixed target latent + prompt context (VAE/T5 weights not local, no pre-encoded latents in assets). DiT+LoRA+memory modules+memory tensor+camera params are all REAL.
