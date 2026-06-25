@@ -115,3 +115,21 @@ Artifacts: `artifacts/learned3d_wedge/overfit_test.py`, `overfit_result.txt`.
 **Net for Phase 0:** end-to-end **feasibility is validated** (gradient flow + real-model integration runs +
 in-graph store trains on the real loss path). The **scientific claim (learned>frozen on real data) is the
 next experiment**, not yet shown.
+
+## GO/NO-GO: learned vs frozen on REAL held-out data — POSITIVE (modest) (2026-06-26, H100)
+Fixed the backward bug by **decoupling encode from train** (the CPU-residue complex-RoPE error came from
+the offloaded VAE/T5 path, not the math): Phase A encodes the real clip (VAE+T5) → saves real inputs; Phase
+B/C trains the store in a fresh DiT-only process with clean GPU leaves → `backward()` succeeds.
+- Real VAE/T5-encoded demo clip; store trained on a set of (noise,timestep), **evaluated on disjoint
+  held-out (noise,timestep)** it never trained on:
+  - **FROZEN held-out = 0.4690 → LEARNED held-out = 0.4563 = +2.71%**, **5/5 held-out samples improved**,
+    monotonic; train gain (+3.19%) ≈ held-out gain → **generalizes, not memorization.**
+- **Verdict: YES — a learned in-graph store beats the frozen released store on real held-out data** (clears
+  >1% + majority-of-samples bar). **Honest caveats:** margin is **modest (~2.7%)**; held-out axis is
+  **(noise,timestep) only** (the demo has 1 query frame → cross-*viewpoint* generalization untested); single
+  demo clip. Artifacts: `artifacts/learned3d_wedge/heldout_real*.py`, `heldout_real_result.txt`.
+
+**What this means:** the core hypothesis — *a **learned** store improves over the **frozen** released store
+on **real** data, and the gain **generalizes*** — is **supported at small scale: a real "weak go."** The
+larger claim (learned geometry helps across **viewpoints**) needs multi-frame/multi-clip data — i.e. the real
+**toon-multiview pipeline** (the project's next phase). Pod stopped (resumable).

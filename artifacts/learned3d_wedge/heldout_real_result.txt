@@ -1,0 +1,53 @@
+Captain-Safari LEARNED-vs-FROZEN in-graph memory store — REAL held-out test
+(decoupled encode/train fix for the complex-RoPE CPU-residue backward bug)
+======================================================================
+BACKWARD_FIXED=YES
+TRAIN_TIDS=[620, 700, 780, 860, 920] TRAIN_SEEDS=[10, 11, 12, 13, 14]
+EVAL_TIDS =[660, 740, 820, 900, 950]  EVAL_SEEDS =[90, 91, 92, 93, 94]
+lr=0.003 steps(max)=250 early_stop_patience=6
+
+FROZEN_TRAIN_MEAN   =0.431882
+LEARNED_TRAIN_MEAN  =0.418103
+FROZEN_HELDOUT_MEAN =0.469014  (prior-run ref=0.564)
+LEARNED_HELDOUT_MEAN=0.456288
+HELDOUT_REL_GAIN=+2.71%  TRAIN_REL_GAIN=+3.19%
+heldout_samples_better=5/5
+
+per-held-out-sample (seed,tid,t,frozen,learned):
+  seed=90 tid=660 t=720.3  frozen=0.266492  learned=0.256416
+  seed=91 tid=740 t=637.3  frozen=0.363340  learned=0.350861
+  seed=92 tid=820 t=523.3  frozen=0.487173  learned=0.472297
+  seed=93 tid=900 t=357.1  frozen=0.617943  learned=0.602591
+  seed=94 tid=950 t=208.3  frozen=0.610125  learned=0.599276
+
+training history (step, train_mean, heldout_mean):
+  0	0.431882	0.468327
+  10	0.427355	0.464310
+  20	0.425459	0.462469
+  30	0.423923	0.461023
+  40	0.422718	0.460022
+  50	0.421854	0.459202
+  60	0.421160	0.458695
+  70	0.420608	0.458262
+  80	0.420106	0.457872
+  90	0.419905	0.457662
+  100	0.419449	0.457322
+  110	0.419238	0.457117
+  120	0.418963	0.456949
+  130	0.418813	0.456814
+  140	0.418678	0.456706
+  150	0.418464	0.456616
+  160	0.418425	0.456532
+  170	0.418382	0.456480
+  180	0.418261	0.456417
+  190	0.418165	0.456369
+  200	0.418179	0.456348
+  210	0.418148	0.456341
+  220	0.418092	0.456311
+  230	0.418090	0.456302
+  240	0.418091	0.456290
+  249	0.418095	0.456288
+
+VERDICT: YES — learned store beats frozen on REAL held-out data
+max_vram_alloc_GB=42.60
+REALITY: input_latents/y/context all REAL (VAE+T5+camera-encoded from the demo clip in Phase A). DiT+LoRA+memory modules+retriever REAL & FROZEN. Store = trainable fp32 copy of the REAL released memory tensor.
