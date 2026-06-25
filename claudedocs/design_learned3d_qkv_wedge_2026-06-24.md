@@ -4,13 +4,14 @@
 B2 analysis: **a 3D feature store whose geometry is learned end-to-end by analysis-by-synthesis, queried via
 QKV, producing images.** Companion to `research_b2_internal3d_mechanisms_2026-06-24.md`.*
 
-## 0. Honest scope (read first)
-This is the **research path (path 2)**, not the stylized tool. It produces a *mechanism result*, not a
-camera-change app for your animations. It's designed in a domain where **3D ground-truth exists to verify
-the claim** (RealEstate10K / driving) — **stylized 2D is explicitly out of scope here** (no GT to verify
-learned geometry; it's a downstream *application* only after the mechanism works). Expect a **months-long,
-single-GPU proof-of-concept** with real risk it doesn't beat the baseline. If you want the tool, that's the
-other spec.
+## 0. Scope (updated — domain locked 2026-06-24)
+Research path, now aimed at **your domain via the right data: stylized animation that is *perspective-
+correct*** (rendered 3D-CG / toon-shaded / **stop-motion**). That data has **both the stylized look AND
+recoverable 3D ground-truth**, so it can **train + verify the learned-geometry claim *and* double as the
+application** — dissolving the earlier "stylized has no 3D" blocker (we sidestep *hand-drawn*; we use
+stylized data that *does* carry geometry). This is the closure of your original **stop-motion instinct**:
+perspective-correct stylized footage is the key. Still a **months-long, single-GPU PoC** with real risk;
+**hand-drawn-2D / Ghibli is a deferred transfer stretch**, not the PoC target.
 
 ## 1. Requirements & the contribution
 - **Claim to test:** a store whose geometry **emerges from the generation objective** (no off-the-shelf
@@ -69,6 +70,9 @@ other spec.
 | **geometry LEARNED** (ours) | ablation A (learned store, render-cond) | **★ OURS (learned × QKV)** |
 Running all four on one backbone/data/compute **cleanly attributes** any gain to (a) learning geometry,
 (b) QKV retrieval, or (c) their interaction. The headline test is **★ vs Captain-Safari** and **★ vs Mirage**.
+*On rendered toon data we have GT depth/pose, so the **given-geometry** arm can use either the GT depth
+(upper-bound) or an **off-the-shelf estimator on the toon RGB** — which tends to fail on flat toon shading,
+and that failure is exactly the **stress test** where the **learned** arm should win.*
 
 ## 5. Evaluation
 - **Robustness stress test (the money metric):** inject **depth error / OOD inputs** (degrade or corrupt the
@@ -76,20 +80,31 @@ Running all four on one backbone/data/compute **cleanly attributes** any gain to
   is corrected by synthesis). This is Mirage's stated weakness → the sharp, falsifiable win.
 - **Geometric consistency:** **GeCo / VGGRPO** (flow/depth/pose consistency across generated views) — the
   deterministic verifier (fits your verification-first instinct).
-- **Standard NVS:** PSNR/SSIM/LPIPS + Mirage's **WorldScore** (camera-control, 3D/photometric consistency)
-  for apples-to-apples vs the baseline.
+- **Standard NVS:** PSNR/SSIM/LPIPS + Mirage's **WorldScore** (camera-control, 3D/photometric consistency).
+- **Direct geometry check (bonus of rendered data):** because toon data is *rendered*, we have **exact
+  depth/pose GT** → measure **learned-geometry accuracy directly**, not just downstream consistency. Cleaner
+  verifier than RE10K.
 
 ## 6. Data & compute
-- **Primary domain:** **RealEstate10K** (matches Mirage → direct baseline comparison; geometry GT for eval).
-- **Secondary (optional, AD tie):** **nuScenes/Waymo** with **LiDAR/pose held out at train, used only as the
-  eval oracle** ("verifier not crutch").
-- **Compute:** single **H100 + ~1000 free hrs**. **LoRA on the DiT + a small trainable store-builder**,
-  low-res, RE10K subset, **overfit-then-generalize PoC**. Baselines (Mirage/Captain Safari) reuse open code.
+- **Primary domain — stylized-but-geometric animation:**
+  - **Manufactured synthetic toon-3D multi-view (primary):** render 3D toon/anime-shaded characters & scenes
+    (MMD model libraries, anime 3D assets, Blender NPR) from **many known cameras** → **perfect camera+depth
+    GT**, stylized look, built-in domain randomization, **unlimited quantity**, and **you control coverage
+    (incl. extreme top-down)**. Serves as *both* the training set *and* the verifier.
+  - **Secondary / transfer tests:** real **3D-CG anime / game-cutscene / VTuber-MMD** (perspective-correct)
+    and **stop-motion** (Pat&Mat-style; cameras via SfM) — test realism + the sim→real-stylized gap.
+  - **Hand-drawn 2D / Ghibli:** deferred stretch (no 3D → reachable only via transfer from the above).
+- **Baselines on the same data:** the 2×2 is self-contained — train all four cells on the toon set (don't
+  rely on Mirage's RE10K numbers; its real-video weights won't match toon out of the box).
+- **Compute:** single **H100 + ~1000 free hrs**. **LoRA on the DiT (Captain Safari) + a small trainable
+  store-builder**, low-res, a curated toon-multiview subset, **overfit-then-generalize PoC**.
 
 ## 7. Phased plan & gates (each gates the next)
-- **Phase 0 — baselines + verifier (weeks).** Reproduce **Captain Safari** + **Mirage**; stand up **GeCo**.
-  *Gate:* both baselines reproduce within tolerance; GeCo runs. **Also: code-level check that Captain
-  Safari's retrieval isn't hard-coupled to StreamVGGT features** (flagged risk — if it is, the swap is bigger).
+- **Phase 0 — data + baselines + verifier (weeks).** (a) Build the **toon-multiview data pipeline** (render
+  N toon assets × many cameras → frames + GT depth/pose; bake in coverage incl. top-down). (b) Reproduce
+  **Captain Safari** + **Mirage**, fine-tuned on the toon set. (c) Stand up **GeCo** + the direct-geometry
+  check. (d) **Code-level check that Captain Safari's retrieval isn't hard-coupled to StreamVGGT** (flagged
+  risk — if it is, the swap is bigger). *Gate:* toon data renders with GT; baselines train on it; verifiers run.
 - **Phase 1 — make the store trainable.** Drop StreamVGGT supervision; train the store-builder under the
   denoising loss (+ stabilizers). *Gate:* learned store **matches** frozen store on in-distribution (doesn't
   collapse).
@@ -108,15 +123,18 @@ Running all four on one backbone/data/compute **cleanly attributes** any gain to
 | **Scooped** (hot area, monthly papers) | keep the delta sharp (robustness-to-bad-geometry framing); move fast on Phase 0–2 |
 | Doesn't beat baseline | the 2×2 + stress test yields a publishable *negative* either way |
 
-## 9. Decisions needed (before `/sc:implement`)
-1. **Domain:** RE10K only (cleanest baseline match) · + driving (AD tie, held-out oracle) · stylized is *not*
-   a research-phase choice. *(Rec: RE10K first.)*
-2. **Base:** extend **Captain Safari** (rec — open + already QKV) vs Gen3R vs small-from-scratch DiT.
-3. **Geometry grounding:** pure-emergent vs **weak-init-then-free** curriculum. *(Rec: weak-init-then-free —
-   lower collapse risk.)*
-4. **Ambition:** mechanism PoC (prove the cell is reachable) vs push-to-paper. *(Rec: PoC gate first.)*
+## 9. Decisions — LOCKED (2026-06-24)
+1. **Domain:** ✅ **stylized-but-geometric animation** — *synthetic toon-3D multi-view (primary)* + stop-motion
+   / 3D-CG (transfer tests). Hand-drawn 2D deferred. *(NOT RE10K — that was a benchmark default; user
+   corrected it.)*
+2. **Base:** ✅ **extend Captain Safari** (open, already QKV-into-store).
+3. **Grounding:** ✅ **weak-init-then-free** — warm-start the store-builder from rendered GT depth, then
+   release it to be shaped by synthesis.
+4. **Ambition:** ✅ **mechanism PoC first** (prove the empty cell is reachable + beats baselines on the
+   stress test), then decide on paper/extension.
 
 ## 10. Next step
-`/sc:implement` Phase 0: reproduce Captain Safari + Mirage baselines, stand up GeCo, and the code-level
-coupling check — *before* building the trainable store. *(Recommended defaults: RE10K · extend Captain Safari
-· weak-init-then-free · PoC gate.)*
+`/sc:implement` **Phase 0**: (a) the **toon-multiview data pipeline** (render toon 3D from many cameras → GT
+depth/pose), (b) reproduce Captain Safari + Mirage on the toon set, (c) GeCo + direct-geometry eval, (d) the
+StreamVGGT-coupling code check — *before* building the trainable store.
+*Human-in-loop: training runs go on a cloud pod (not the local 3080) per standing preference.*
