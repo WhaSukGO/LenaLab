@@ -131,11 +131,17 @@ and that failure is exactly the **stress test** where the **learned** arm should
   store-builder**, low-res, a curated toon-multiview subset, **overfit-then-generalize PoC**.
 
 ## 7. Phased plan & gates (each gates the next)
-- **Phase 0 — data + baselines + verifier (weeks).** (a) Build the **toon-multiview data pipeline** (render
-  N toon assets × many cameras → frames + GT depth/pose; bake in coverage incl. top-down). (b) Reproduce
-  **Captain Safari** + **Mirage**, fine-tuned on the toon set. (c) Stand up **GeCo** + the direct-geometry
-  check. (d) **Code-level check that Captain Safari's retrieval isn't hard-coupled to StreamVGGT** (flagged
-  risk — if it is, the swap is bigger). *Gate:* toon data renders with GT; baselines train on it; verifiers run.
+- **Phase 0 — data + baselines + verifier (weeks).**
+  (d) ✅ **DONE — Gate D (coupling check) PASSED** (`phase0_captain_safari_gate_2026-06-24.md`): DiT↔memory is
+  loosely coupled (clean swap); retriever↔StreamVGGT is tight but *parameterized* (match the `[4,782,1024]`
+  contract → zero retriever edits). **Crux change:** today `memory` is pre-baked `.npy` (no backprop); must
+  **move feature extraction in-graph** at `wan_video_new.py:~1376` so the store gets the diffusion gradient.
+  Training infra (LoRA-r32, unfreeze plumbing, PreEnc path) already exists. Feasible on 1×H100 via PreEnc.
+  (next) (a) **toon-multiview data pipeline** (render N toon assets × many cameras → RGB + GT depth + 9-dim
+  poses; coverage incl. top-down) — **sidesteps OpenSafari/COLMAP** since rendered cameras are known.
+  (b) Reproduce Captain Safari + Mirage on the toon set. (c) Stand up **GeCo** + direct-geometry check.
+  *Gate:* an **overfit-one-clip smoke test** (on released `demo_data`) shows gradients flow
+  store→retriever→DiT and beat the frozen-StreamVGGT baseline — *before* the data build.
 - **Phase 1 — make the store trainable.** Drop StreamVGGT supervision; train the store-builder under the
   denoising loss (+ stabilizers). *Gate:* learned store **matches** frozen store on in-distribution (doesn't
   collapse).
