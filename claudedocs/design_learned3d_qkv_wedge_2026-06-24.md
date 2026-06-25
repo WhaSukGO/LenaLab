@@ -13,6 +13,37 @@ stylized data that *does* carry geometry). This is the closure of your original 
 perspective-correct stylized footage is the key. Still a **months-long, single-GPU PoC** with real risk;
 **hand-drawn-2D / Ghibli is a deferred transfer stretch**, not the PoC target.
 
+## ★ What it does — input → output & applications
+
+**Input:** one or a few **stylized images** (seed view[s]) **+ a target camera** (a pose, or a *path* of
+cameras for a moving shot). *(Internally the seeds are written into a persistent 3D latent store; feeding
+more frames accumulates the world.)*
+**Output:** the **same scene/character rendered from the target camera** — a consistent **image** (or a
+**video** for a camera path). *Bonus:* readable **3D structure** (depth/points) as a by-product, but the
+deliverable is the image, not a mesh.
+
+> One line: **`(seed image[s] + desired camera) → consistent image from that camera`**, with a 3D memory
+> that persists across calls.
+
+**Applications (the angle):**
+- *Creator power:* reframe any shot to any angle (incl. extreme top-down) without re-drawing; one drawing →
+  full multi-angle coverage; a real moving camera *inside* a 2D-drawn world (orbit/push-in/crane).
+- *The differentiator vs consumer tools (Nano Banana Pro etc.):* a **persistent 3D store → consistency
+  across a whole *sequence*** (not one reframe at a time → no drift), **reliable extreme angles + exact
+  camera control**, **your exact style/characters**, and **accumulate-a-world** (add views → an explorable
+  consistent stylized space — your original "build up a 3D space by changing the angle" idea).
+- *Strategic/research:* the mechanism *is* the contribution (learned, queryable 3D generator = the open
+  cell); it's the **same machinery as driving world models** (query a learned 3D/BEV volume) → on-ramp to
+  the self-driving / world-model career. "A stylized world model and a driving world model are the same
+  model in different clothes."
+
+**One-sentence pitch:** *a **stylized world model** — feed it a drawing and a camera, get that scene from
+any angle consistently, and keep adding views to build an explorable world* — a creator tool the existing
+apps can't match **and** the learned-queryable-3D mechanism that's open research + the career's core skill.
+
+**Scope honesty:** works in the stylized-but-geometric domain it's trained on (toon/3D-CG/stop-motion);
+hand-drawn Ghibli is deferred transfer; output is image/video (3D internal); assumes the research lands.
+
 ## 1. Requirements & the contribution
 - **Claim to test:** a store whose geometry **emerges from the generation objective** (no off-the-shelf
   depth/pose/VGGT) and is **queried by attention** will be **more robust to geometry error / OOD inputs**
