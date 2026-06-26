@@ -1,0 +1,26 @@
+Captain-Safari generation-QUALITY experiment (CFG ON)
+steps=50 cfg=6.0 seed=1234 shift=5.0
+real reference = VAE-decode of viewpoint input_latents (last frame)
+
+SANITY (view 4, frozen+CFG6.0 vs real): LPIPS_alex=0.4019 LPIPS_vgg=0.5163 PSNR=18.34 SSIM=0.8052
+
+view  4 (IN ): frozen LPIPSa=0.4019/v=0.5163 PSNR=18.34 SSIM=0.8052 | learned LPIPSa=0.4378/v=0.5587 PSNR=16.78 SSIM=0.7808 | dLPIPSa=-0.0360
+view  8 (IN ): frozen LPIPSa=0.5257/v=0.5856 PSNR=14.11 SSIM=0.7336 | learned LPIPSa=0.5360/v=0.6132 PSNR=13.83 SSIM=0.7192 | dLPIPSa=-0.0103
+view 12 (IN ): frozen LPIPSa=0.6349/v=0.6520 PSNR=11.85 SSIM=0.6498 | learned LPIPSa=0.6327/v=0.6725 PSNR=12.17 SSIM=0.6400 | dLPIPSa=+0.0022
+view 16 (OUT): frozen LPIPSa=0.7104/v=0.6837 PSNR=10.29 SSIM=0.6154 | learned LPIPSa=0.6923/v=0.6894 PSNR=10.58 SSIM=0.6034 | dLPIPSa=+0.0181
+view 18 (OUT): frozen LPIPSa=0.7489/v=0.7128 PSNR=9.69 SSIM=0.5948 | learned LPIPSa=0.7340/v=0.7247 PSNR=9.84 SSIM=0.5802 | dLPIPSa=+0.0150
+view 19 (OUT): frozen LPIPSa=0.7711/v=0.7375 PSNR=9.21 SSIM=0.5780 | learned LPIPSa=0.7535/v=0.7427 PSNR=9.20 SSIM=0.5591 | dLPIPSa=+0.0176
+
+IN-WINDOW mean frozen: LPIPSa=0.5208 LPIPSv=0.5846 PSNR=14.77 SSIM=0.7295
+IN-WINDOW mean learned: LPIPSa=0.5355 LPIPSv=0.6148 PSNR=14.26 SSIM=0.7134
+IN-WINDOW learned-improvement: dLPIPSa=-0.0147 dLPIPSv=-0.0301 (positive = learned better)
+HELD-OUT mean frozen: LPIPSa=0.7435 LPIPSv=0.7113 PSNR=9.73 SSIM=0.5961
+HELD-OUT mean learned: LPIPSa=0.7266 LPIPSv=0.7189 PSNR=9.87 SSIM=0.5809
+HELD-OUT learned-improvement: dLPIPSa=+0.0169 dLPIPSv=-0.0076 (positive = learned better)
+
+SIDE_BY_SIDE_PNGS:
+  /workspace/genq/view4_sidebyside.png
+  /workspace/genq/view16_sidebyside.png
+  /workspace/genq/view19_sidebyside.png
+
+max_vram_GB=25.71

@@ -96,6 +96,39 @@ at far held-out viewpoints is the real bottleneck.
 convincing one.** Worth continuing — but the next phase must optimize/measure **actual generation quality**,
 not just denoising loss.
 
+## 2d. Generation-QUALITY test (CFG on) — VERDICT: B + C (the honest gate)
+
+We fixed the demo's suspected weakness (**CFG now ON**, 50 steps) and measured **real image quality** (LPIPS,
+PSNR, SSIM vs the real frame) across in-window + held-out viewpoints, frozen vs learned.
+
+![generation quality](../artifacts/learned3d_wedge/figs/fig5_genquality.png)
+
+| | FROZEN | LEARNED | |
+|---|---|---|---|
+| in-window LPIPS↓ | 0.521 | 0.536 | learned slightly **worse** |
+| held-out LPIPS↓ | 0.744 | 0.727 | learned marginally better (mixed on vgg) |
+| in-window PSNR↑ | 14.8 | 14.3 | learned worse |
+| held-out PSNR↑ | 9.7 | 9.9 | ~tie |
+
+**Two robust findings:**
+- **B — the loss gain does NOT translate to pixels.** Learned ≈ frozen visually — *worse* on near views, a
+  *marginal mixed* edge on far views. The +16% denoising-loss advantage produces **no clear image-quality
+  win.** (This comparison is apples-to-apples, so it's solid.)
+- **C — the base model can't reproduce the viewpoint.** Even the *sanity* in-window view (the easiest case,
+  CFG on) is only **PSNR 18.3 / LPIPS 0.40** (mediocre), and quality **collapses with distance** to PSNR ~9 /
+  LPIPS ~0.77. The side-by-sides confirm it: both stores render a generic oblique coastline; *neither* matches
+  the real top-down framing. The released model's camera control is the ceiling — a better store can't fix a
+  downstream bottleneck.
+
+**This overturns §2b's "strong go."** The +16% was a **denoising-loss artifact**; under proper generation it
+doesn't yield a visually better *or* viewpoint-faithful image. *Caveat:* we used a manual sampler (CFG-on);
+the model's full official video-inference pipeline might render somewhat better (tempers C) — but **B holds
+regardless**, and B is the claim that mattered.
+
+**Verdict: the trainable-store-copy wedge does not deliver a visual result, and this base model has a low
+viewpoint-fidelity ceiling.** Per the scope's framework, that's **B (reconsider mechanism/scope) + C
+(reconsider the base model)** — *not* a go.
+
 ## 3. How we got here, and what's next
 
 ![roadmap](../artifacts/learned3d_wedge/figs/fig3_roadmap.png)
@@ -127,7 +160,8 @@ an explorable world.
   env (only `/workspace` persists) → restore from the saved lock; decouple encode from train to keep the
   autograd graph clean.
 
-**One-line status:** *learned > frozen is real and generalizes **in denoising loss** (+16% across unseen
-viewpoints), but the **generation demo shows the win is subtle and not yet viewpoint-faithful in pixels** —
-a measurable signal, not yet a visually convincing one. Continue, but next must measure **actual generation
-quality** (not just loss), on the real architecture + multi-scene + stylized domain.*
+**One-line status (FINAL for this phase):** *the generation-quality gate came back **B + C** — the +16%
+denoising-loss win does **not** translate to better or viewpoint-faithful pixels, and the base model can't
+reproduce viewpoints anyway. The trainable-store-copy wedge on Captain-Safari **does not deliver a visual
+result.** Decision point: re-ground the idea on a base with strong native novel-view synthesis, or **pivot to
+the practical Ghibli-tool path** (proxy→ControlNet / multi-image models) to actually get camera-angle outputs.*
