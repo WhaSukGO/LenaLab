@@ -67,6 +67,35 @@ unseen camera viewpoints on real data. This is the result the whole direction hi
 arbitrary orbits), and **within-scene** (cross-*scene* generalization untested). It's a strong signal on the
 right variable, not yet a multi-scene or stylized-domain claim.
 
+## 2c. Generation demo — the visual reality check (important caveat)
+
+We finally ran *actual generation* (full 30-step sampler + VAE-decode), not loss, at two held-out
+viewpoints — **real target | frozen-store generation | learned-store generation**:
+
+![view 16](../artifacts/learned3d_wedge/gen_demo/view16_sidebyside.png)
+![view 19](../artifacts/learned3d_wedge/gen_demo/view19_sidebyside.png)
+
+**What the pixels actually show (honest):**
+- The model generates **coherent, plausible coastal scenes** — but **neither** generation reproduces the
+  real target's **camera viewpoint**: the REAL frames are near **top-down cove** shots; both generations
+  render an **oblique coastline**. The shared memory/context dominates; the held-out query pose only weakly
+  steers the framing.
+- **Frozen vs learned is subtle** — the learned one is marginally crisper (cliff structure, water/shore
+  edge), frozen slightly hazier, but it is **not** a night-and-day difference. It matches the *modest* loss
+  gain, not a dramatic one.
+
+**This tempers §2b's "strong go."** The +16–20% is real **in denoising loss**, but **in pixels it does not
+yet translate to a clearly-better *or* viewpoint-faithful prediction.** The honest synthesis: the learned
+store is *measurably* better, but **denoising loss was an optimistic proxy** — the actual generation quality
+at far held-out viewpoints is the real bottleneck.
+- *Caveats on the demo itself:* CFG was off and the sampler simplified, so this isn't the model's best
+  possible output; but the frozen-vs-learned comparison is apples-to-apples, so "subtle visual difference"
+  holds. Far, outside-window viewpoints are the hardest case (absolute loss stays high ~0.55–0.74).
+
+**Revised verdict: a real *quantitative* signal (learned > frozen, generalizing), but *not yet* a visually
+convincing one.** Worth continuing — but the next phase must optimize/measure **actual generation quality**,
+not just denoising loss.
+
 ## 3. How we got here, and what's next
 
 ![roadmap](../artifacts/learned3d_wedge/figs/fig3_roadmap.png)
@@ -98,6 +127,7 @@ an explorable world.
   env (only `/workspace` persists) → restore from the saved lock; decouple encode from train to keep the
   autograd graph clean.
 
-**One-line status:** *the decisive test passed — a learned, queryable 3D store beats the frozen handed-in one
-**across unseen camera viewpoints** (+16.4%, generalizing) on real data. Strong go on one scene; next is
-multi-scene confirmation, then the stylized-domain build.*
+**One-line status:** *learned > frozen is real and generalizes **in denoising loss** (+16% across unseen
+viewpoints), but the **generation demo shows the win is subtle and not yet viewpoint-faithful in pixels** —
+a measurable signal, not yet a visually convincing one. Continue, but next must measure **actual generation
+quality** (not just loss), on the real architecture + multi-scene + stylized domain.*
