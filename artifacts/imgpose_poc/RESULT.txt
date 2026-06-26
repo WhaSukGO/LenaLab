@@ -1,0 +1,83 @@
+PoC: single front Ghibli portrait -> moderate 3/4 view, same character + style
+Input: /workspace/imgpose/in/source.png (966x522) - Ghibli boy (Mahito-like,
+forehead bandage), gray shirt, green landscape + red house behind.
+Date: 2026-06-26  |  Pod: H100 80GB, torch 2.4.1+cu124
+Env note: had to PIN diffusers==0.31.0 + transformers==4.49.0. The fresh
+diffusers 0.38 crashes on torch 2.4.1 (attention_dispatch.py registers a
+flash-attn-3 custom op whose PEP604 "Tensor | None" annotations torch 2.4.1's
+infer_schema rejects). 0.31.0 imports cleanly.
+
+================================================================================
+APPROACH A  - Novel-view diffusion (Zero123++) -> SDXL Ghibli restyle  [PRIMARY]
+================================================================================
+Models: sudo-ai/zero123plus-v1.2 (NVS) ; cagliostrolab/animagine-xl-3.1 +
+diffusers/controlnet-depth-sdxl-1.0 + h94/IP-Adapter (sdxl) for restyle.
+Pipeline: rembg cutout on white -> Zero123++ 6-view orbit -> pick the ~30deg
+tile -> rembg the tile to clean white -> Depth-Anything-V2 depth -> SDXL anime
+img2img (strength ~0.55) with ControlNet-depth(0.65) + IP-Adapter(source, 0.7).
+
+Recognizable 3/4?  YES. Genuine ~25-35deg head turn. Zero123++ was the ONLY
+   thing that actually rotated the head. Two usable tiles: az330/el-20 (turn to
+   one side, KEEPS the forehead bandage) and az30/el30 (turn other side).
+Ghibli/2D style kept?  YES after restyle. Zero123++ raw tiles are soft/muddy
+   with a dark halo and lost crisp lineart; the SDXL anime restyle restores
+   clean cel-shading + lineart and removes the halo (after re-cutting bg).
+Identity kept?  MOSTLY. Same boy: hair, brown eyes, gray collared shirt, and
+   (on the az330 tile) the forehead bandage survive. Face proportions drift a
+   little through NVS+restyle; not a pixel-perfect identity lock but clearly the
+   same character.
+Artifacts: NVS darkens/softens the far cheek; back-of-head orbit views are
+   plausible but invented; restyle can mildly restyle the face. Moderate turns
+   only - the >=90deg orbit tiles are visibly hallucinated.
+BEST OUTPUT: out/05_restyle_t21clean.png  (also out/05_restyle_t00clean.png)
+Verdict: VIABLE for a moderate, believable 3/4. Usable as a keyframe / concept
+   frame; NOT frame-to-frame identity-stable enough for clean inbetween anim
+   without further per-shot cleanup.
+
+================================================================================
+APPROACH B  - Control-guided restyle WITHOUT explicit NVS  [fallback]
+================================================================================
+Source -> Depth-Anything-V2 -> SDXL anime img2img + ControlNet-depth +
+IP-Adapter(source) + "three-quarter view, head turned 30deg" prompt.
+ B1 (depth pinned, cn=0.8): out/06_B1_depthpin.png
+ B2 (depth loosened cn=0.15, strength 0.85): out/06_B2_freeturn.png
+Recognizable 3/4?  NO. B1 stays dead frontal (front depth pins the pose). B2
+   even with loosened control + strong prompt stays ~frontal (<=10deg).
+Ghibli style kept?  YES - both are gorgeous clean Ghibli re-renders.
+Identity kept?  YES - best identity of all (bandage, eyes, shirt all intact).
+Verdict: A clean RESTYLER, NOT a view-changer. Confirms the core limitation:
+   img2img+IP-Adapter cannot invent a head turn from a single front image - the
+   viewpoint change has to come from a real NVS model. Good for "same pose,
+   cleaner style"; not for "turn the head".
+
+================================================================================
+APPROACH C  - Pure depth reprojection (baseline)  [diagnostic]
+================================================================================
+Depth-Anything-V2 -> treat depth as Z -> rotate cam 25deg about Y -> forward
+warp w/ z-buffer -> hole mask.  out/03_warp25_rgb.png , _depth.png , _holemask.png
+Recognizable 3/4?  NO. Classic stretched smear: the depth model reads the flat
+   anime face as near-planar, so a 25deg yaw shears it into streaks + huge holes.
+Verdict: FAILS, as expected. Useful only to show why pure geometry is a dead end
+   on a single flat anime portrait (no real per-pixel depth to reproject).
+
+================================================================================
+OVERALL VERDICT
+================================================================================
+Single front anime portrait -> moderate 3/4 of the SAME character is PRACTICALLY
+VIABLE, but ONLY via Approach A (NVS to actually rotate + anime-SDXL restyle to
+recover style/lineart). The turn must come from Zero123++; the diffusion restyle
+alone (B) cannot rotate a head, and pure geometry (C) shreds the flat face.
+Honest limits: works for ~20-40deg; identity is "same character" not pixel-locked;
+big rotations / top-down remain hallucinated and out of scope. Good enough for a
+keyframe/concept turn; needs cleanup before it could feed real animation.
+
+KEY FILES (out/):
+  05_restyle_t21clean.png      <- BEST single result (3/4, bandage kept)
+  05_restyle_t00clean.png      <- 2nd best (other-side turn)
+  02_zero123plus_grid.png      <- raw Zero123++ 6-view orbit
+  02_z123_tile_2_1.png / _0_0  <- the two raw 3/4 tiles used
+  06_B1_depthpin.png / 06_B2_freeturn.png  <- Approach B (frontal, clean)
+  03_warp25_rgb.png            <- Approach C baseline (broken)
+  COMPARE_A_main.png           <- source | z123 raw | restyled best | other tile
+  COMPARE_approaches.png       <- source | A | B | C side by side
+  COMPARE_z123_orbit.png       <- source | full orbit grid
