@@ -1,0 +1,47 @@
+Captain-Safari LEARNED-vs-FROZEN in-graph memory store — CROSS-VIEWPOINT held-out test
+Held-out variable = CAMERA VIEWPOINT (query pose drives memory retrieval).
+==============================================================================
+BACKWARD_OK=YES
+V_train(views)=[2, 6, 10, 14, 18]
+V_test(views) =[4, 8, 12, 16, 19]
+V_test OUTSIDE key window (genuinely new viewpoints)=[16, 19]
+grid TIDS=[660, 780, 900] SEEDS=[11, 12, 13]
+lr=0.003 steps(max)=80 early_stop_patience=4
+
+FROZEN_TRAIN_MEAN  =0.631676
+LEARNED_TRAIN_MEAN =0.541340
+FROZEN_TEST_MEAN   =0.664144
+LEARNED_TEST_MEAN  =0.555388
+TEST_REL_GAIN=+16.38%  TRAIN_REL_GAIN=+14.30%
+heldout_views_better=5/5
+OUTSIDE-WINDOW-ONLY V_test=[16, 19]: frozen=0.717808 learned=0.570763 rel_gain=+20.49%
+
+per-held-out-viewpoint (view, outside_key, frozen, learned, rel_gain%, better):
+  view= 4 outside=False frozen=0.553243 learned=0.535211 rel=+3.26% BETTER
+  view= 8 outside=False frozen=0.641239 learned=0.544509 rel=+15.08% BETTER
+  view=12 outside=False frozen=0.690624 learned=0.555693 rel=+19.54% BETTER
+  view=16 outside=True frozen=0.737630 learned=0.589344 rel=+20.10% BETTER
+  view=19 outside=True frozen=0.697986 learned=0.552181 rel=+20.89% BETTER
+
+training history (step, train_mean, heldout_test_mean):
+  0	0.631676	0.662392
+  5	0.624890	0.655266
+  10	0.619919	0.648922
+  15	0.613856	0.641047
+  20	0.606705	0.631364
+  25	0.596566	0.616871
+  30	0.585997	0.600769
+  35	0.572031	0.584252
+  40	0.560870	0.573139
+  45	0.553268	0.565582
+  50	0.548518	0.561566
+  55	0.545427	0.558769
+  60	0.543470	0.557125
+  65	0.542183	0.556028
+  70	0.541555	0.555546
+  75	0.541333	0.555430
+  79	0.541324	0.555388
+
+VERDICT: STRONG GO — learned store clearly beats frozen across held-out viewpoints
+max_vram_alloc_GB=43.01
+REALITY: per-viewpoint input_latents = VAE-encoded real mp4 window ending at that viewpoint's frame; query camera = clip_0_20 pose at that index. Shared released y/context/memory/key-cameras. DiT+LoRA+memory+retriever REAL & FROZEN. Store = trainable fp32 copy of released memory.
